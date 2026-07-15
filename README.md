@@ -7,6 +7,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](license.md)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/ak495867/Zerene/actions/workflows/python-ci.yml/badge.svg)](https://github.com/ak495867/Zerene/actions/workflows/python-ci.yml)
 [![Standalone OSS](https://img.shields.io/badge/Standalone%20OSS-GitHub-purple.svg)](https://github.com/ak495867)
 [![Author: ak495867](https://img.shields.io/badge/Author-ak495867-6200ea.svg)](https://github.com/ak495867)
 
