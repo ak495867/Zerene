@@ -159,6 +159,13 @@ class MatchingEngine:
                 (existing.side == Side.SELL and self.order_book.best_bid() is not None and round(new_price, 8) <= self.order_book.best_bid())
             )
             if would_cross:
+                # If modified quantity is less than what's already filled, the remainder is canceled
+                if new_quantity <= existing.filled_quantity + 1e-9:
+                    removed = self.order_book.remove_order(order_id)
+                    if removed:
+                        removed.status = OrderStatus.CANCELED
+                    return True, removed, "CANCEL_ON_QUANTITY_BELOW_FILLED"
+
                 removed = self.order_book.remove_order(order_id)
                 if removed:
                     removed.price = round(new_price, 8)

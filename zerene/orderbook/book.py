@@ -155,6 +155,13 @@ class OrderBook:
                 canceled.status = OrderStatus.CANCELED
             return True, canceled, "CANCEL_ON_ZERO_QUANTITY"
 
+        if new_quantity <= order.filled_quantity + 1e-9:
+            # If modified quantity is less than what's already filled, the remainder is canceled
+            canceled = self.remove_order(order_id)
+            if canceled:
+                canceled.status = OrderStatus.CANCELED
+            return True, canceled, "CANCEL_ON_QUANTITY_BELOW_FILLED"
+
         current_price = order.price
         target_price = new_price if new_price is not None else current_price
 

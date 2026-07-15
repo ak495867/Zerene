@@ -70,6 +70,12 @@ Real-time risk management (`RiskEngine`) tracks gross exposure, net exposure, re
 * **Incremental Tracking**: Eliminates $O(N)$ dictionary loops over participant positions during pre-trade validation. Exposure counters update dynamically in $O(1)$ during price changes and fills via `PositionDict` dirty tracking.
 * **Automated Kill-Switch**: If a participant breaches drawdown (`max_drawdown_pct`) or daily loss limits (`max_daily_loss`), the risk engine automatically sends priority cancellation packets across the gateway to purge all resting quotes instantly.
 
+### G. Multi-Process Symbol Sharding (GIL Avoidance) & Edge-Case Protection
+In high-frequency systems, engineers often ask: *"Can we use multi-threading to speed up the matching engine?"* 
+In Python, the Global Interpreter Lock (GIL) makes threading counter-productive for CPU-bound tasks. Furthermore, multi-threading a single highly-mutable limit order book breaks strict deterministic FIFO causality and requires extreme lock contention.
+* **Symbol Sharding**: ZERENE achieves perfect linear scaling by mirroring institutional architecture: **isolated multi-processing**. By spinning up dedicated, isolated `MatchingEngine` instances on separate physical CPU cores (`BTC-USD` on Core 1, `ETH-USD` on Core 2), ZERENE completely bypasses the GIL, shattering the 100,000+ ops/sec ceiling.
+* **Microstructure Invariants**: The engine guards against destructive chaotic flow, such as algorithms maliciously modifying resting quantities to values *below* what the exchange has already executed (`new_quantity <= filled_quantity`). Instead of corrupting the B-Tree with negative remaining balances and triggering infinite crossing loops, ZERENE strictly enforces structural integrity in $O(1)$ time by safely canceling the remainder of the order.
+
 ---
 
 ## 4. Why ZERENE Matters

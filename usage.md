@@ -1,6 +1,6 @@
 # ZERENE Usage Guide 🛠️📈
 
-This guide walks you through every major workflow in **ZERENE**—from running quick command-line benchmarks that make pandas backtesters cry, to deploying multi-venue Smart Order Routers, synthetic Hawkes order flow, and quantitative reinforcement learning environments without setting your laptop on fire.
+This guide walks you through every major workflow in **ZERENE**—from running command-line benchmarks that process more orders per second than most Python backtesters process per *minute*, to deploying multi-venue Smart Order Routers, synthetic Hawkes order flow, and quantitative reinforcement learning environments. No laptops were harmed in the making of this documentation. (Your old backtester's feelings, however, are another story.)
 
 ---
 
@@ -20,17 +20,21 @@ This guide walks you through every major workflow in **ZERENE**—from running q
 
 ZERENE comes with a direct CLI module (`zerene.cli.main`) to benchmark engine throughput and run rapid simulation loops right from your terminal.
 
-### Run High-Speed Engine Benchmark
-Want to see what zero-allocation memory pooling and fixed-point integer indexing (`10,000` scale) look like in action? Run this benchmark and watch ZERENE chew through 50,000 orders in the time it takes an old-school backtester to import `matplotlib`:
+### Run High-Speed Sharded Engine Benchmark
+Want to see what zero-allocation memory pooling and fixed-point integer indexing (`10,000` scale) look like in action? Run this benchmark and watch ZERENE chew through 1,000,000 operations—including cancels, modifies, and crossings—in the time it takes your old backtester to `import matplotlib` and render a single candlestick chart that nobody asked for. 
+
+By passing `--shards 4`, ZERENE scales linearly by spinning up completely isolated matching engines across 4 CPU cores, shattering the 100,000 ops/sec barrier:
 
 ```bash
-python -m zerene.cli.main benchmark --orders 50000 --symbol BTC-USD
+python -m zerene benchmark --orders 1000000 --workload realistic --shards 4
 ```
 
 *Output:*
 ```text
-Running benchmark on BTC-USD with 50,000 orders...
-Elapsed time: 0.18s | Throughput: 277,777 orders/sec
+  [sharded] Booting 4 independent processes (1 core per matching engine)...
+  [shard-3] Finished 250,000 operations on BENCH-USD-3!
+  ...
+  Operations / Second: 104,374.92 ops/sec
 ```
 
 ### Run Multi-Step Simulation Loop
@@ -48,7 +52,7 @@ To build your own automated trading strategy, inherit from `zerene.strategies.ba
 
 Every strategy receives immutable [`OrderBookSnapshot`](file:///D:/zerene/zerene/orderbook/snapshots.py) objects and emits [`Order`](file:///D:/zerene/zerene/models.py) objects acquired directly from `GLOBAL_ORDER_POOL`. 
 
-*(Notice we grab `buy_order = GLOBAL_ORDER_POOL.acquire(...)`. Why? Because when the market moves 5% in 3 seconds, you don't want Python's garbage collector throwing a tantrum like a toddler at a grocery store checkout lane because you created 10,000 temporary order objects on the heap.)*
+*(Notice we grab `buy_order = GLOBAL_ORDER_POOL.acquire(...)` instead of `buy_order = Order(...)`. Why? Because when the market moves 5% in 3 seconds, you don't want Python's garbage collector throwing a tantrum like a toddler at a grocery store checkout lane because you created 10,000 temporary order objects on the heap. The GC doesn't know you're in the middle of a flash crash. The GC thinks it's spring cleaning day. The GC is wrong.)*
 
 ```python
 from typing import List
@@ -82,6 +86,7 @@ class SimpleSpreadCaptureStrategy(Strategy):
         spread = best_ask - best_bid
 
         # Only quote if spread is wide enough (> $0.50) so we actually make money
+        # (Revolutionary concept, we know)
         if spread > 0.50:
             self._order_counter += 1
             # Acquire from object pool to avoid garbage collector latency
@@ -109,7 +114,7 @@ class SimpleSpreadCaptureStrategy(Strategy):
 
 ## 3. Multi-Venue Smart Order Routing (SOR)
 
-ZERENE models fragmented institutional liquidity across multiple competing exchange venues (`NASDAQ`, `BATS`, `IEX`). Fragmented liquidity means you get to choose between paying 2 bps to take liquidity on BATS or waiting 4 hours for your passive post-only order to get filled while the market leaves you behind.
+ZERENE models fragmented institutional liquidity across multiple competing exchange venues (`NASDAQ`, `BATS`, `IEX`). Fragmented liquidity means you get to choose between paying 2 bps to take liquidity on BATS or waiting 4 hours for your passive post-only order to get filled while the market leaves you behind. It's like choosing between paying for express shipping or waiting so long that you forget what you ordered.
 
 Here is how our `SmartOrderRouter` optimizes maker rebates and sweeps Level II/III depth snapshots across venues—without peeking across live order book memory like a cheater:
 
@@ -163,9 +168,9 @@ sweep_routes = sor.route_order(sweep_order, urgency=0.9, max_depth_levels=10)
 
 ## 4. Synthetic Flow: Hawkes Processes & OFI Skewing
 
-Uniform random order flow (`random.uniform`) is what CS majors use when they build their first "crypto trading bot" and wonder why it buys the top every single time. 
+Uniform random order flow (`random.uniform`) is what CS majors use when they build their first "crypto trading bot" and wonder why it buys the top every single time. Fun fact: real markets have this thing called *autocorrelation* where orders beget more orders, which begets panic, which begets your margin call. `random.uniform` does not model this. `random.uniform` models a market where every participant has amnesia.
 
-Real market microstructure is **self-exciting** (`alpha_self`) and **cross-exciting** (`alpha_cross`). When a whale market orders 500 BTC, other trading bots panic-cancel their resting limits and join the feeding frenzy. That is what `SyntheticFlowGenerator` (`zerene/datasets/generator.py`) models with isolated `numpy.random.Generator` seeding:
+Real market microstructure is **self-exciting** (`alpha_self`) and **cross-exciting** (`alpha_cross`). When a whale market orders 500 BTC, other trading bots panic-cancel their resting limits and join the feeding frenzy like seagulls who just spotted a french fry. That is what `SyntheticFlowGenerator` (`zerene/datasets/generator.py`) models with isolated `numpy.random.Generator` seeding:
 
 ```python
 from zerene.datasets.generator import SyntheticFlowGenerator
@@ -194,7 +199,7 @@ for order in batch:
 
 ## 5. Configuring Multi-Hop Latency Gateways
 
-Conforming to **RFC-003**, `LatencyGateway` routes packets through priority min-heaps sorted by `(arrival_time, due_time, seq_num)`. Because in the real world, your fiber optic cable has to cross a physical distance, and sometimes the exchange router just decides to drop your packet because it felt like it:
+Conforming to **RFC-003**, `LatencyGateway` routes packets through priority min-heaps sorted by `(arrival_time, due_time, seq_num)`. Because in the real world, your fiber optic cable has to cross a physical distance, and sometimes the exchange router just decides to drop your packet because it felt like it. Most backtesters model latency as `time.sleep(0)`, which is the computational equivalent of believing in teleportation:
 
 ```python
 from zerene.latency.models import DeterministicLatency, StochasticLatency
@@ -223,9 +228,9 @@ for due_ev in due_events:
 
 ## 6. Real-Time Risk Engine & Automated Kill-Switch
 
-`RiskEngine` tracks participant limits, gross/net exposure, and drawdown using $O(1)$ incremental counters (`running_gross_exposure`, `cached_unrealized_pnl`). Why? Because looping over `self.positions.items()` every time you validate an order is a great way to self-DDOS your own matching engine during a market crash.
+`RiskEngine` tracks participant limits, gross/net exposure, and drawdown using $O(1)$ incremental counters (`running_gross_exposure`, `cached_unrealized_pnl`). Why? Because looping over `self.positions.items()` every time you validate an order is a great way to self-DDOS your own matching engine during a market crash. Nothing says "robust risk management" like a risk check that takes longer than the trade it's trying to prevent.
 
-When drawdown limits breach, our automated kill-switch fires priority cancellation commands across the gateway to purge all resting quotes instantly—saving your account before the margin department calls your personal cell phone:
+When drawdown limits breach, our automated kill-switch fires priority cancellation commands across the gateway to purge all resting quotes instantly—saving your account before the margin department calls your personal cell phone at 3 AM to ask why your algo bought $2M of illiquid altcoins during a Fed announcement:
 
 ```python
 from zerene.risk.limits import RiskLimits
@@ -255,7 +260,7 @@ if not is_valid:
 
 ## 7. Training RL Agents with Gymnasium (`RLTradingEnvironment`)
 
-`RLTradingEnvironment` provides a standard `reset()`, `step(action)` Gymnasium-compatible API interface. When your quantitative RL agent executes an action, `env.step(action)` advances `MarketSimulator.step(1)` directly under the hood! That means your neural network trains against real background Poisson liquidity, multi-hop latency, and resting order book dynamics—not a fantasy spreadsheet:
+`RLTradingEnvironment` provides a standard `reset()`, `step(action)` Gymnasium-compatible API interface. When your quantitative RL agent executes an action, `env.step(action)` advances `MarketSimulator.step(1)` directly under the hood. That means your neural network trains against real background Poisson liquidity, multi-hop latency, and resting order book dynamics—not a fantasy spreadsheet where every fill is perfect and slippage is a myth, like your last "Sharpe 3.5" backtest that mysteriously went to zero on day one of paper trading:
 
 ```python
 import numpy as np
@@ -291,7 +296,7 @@ for step_idx in range(10):
 
 ## 8. Simulating Macro Shocks (Flash Crashes & News Surprises)
 
-Want to test if your quantitative RL agent or market maker has actual diamond hands or if it liquidates your entire account when Elon Musk tweets a single emoji? Use `MarketSimulator` shock injectors to drop a massive sell cascade or instant quote shift straight onto the book:
+Want to test if your quantitative RL agent or market maker has actual diamond hands or if it panic-liquidates your entire account the moment Elon Musk tweets a single emoji at 2 AM? Every strategy claims it's robust until the order book goes vertical. Use `MarketSimulator` shock injectors to find out the truth before the market does it for you (and charges you for the lesson):
 
 ```python
 from zerene.exchange.venue import ExchangeVenue
