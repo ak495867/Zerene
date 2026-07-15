@@ -58,11 +58,11 @@ PS D:\zerene> python -m zerene benchmark --orders 10000000 --workload realistic 
 ======================================================================
 ```
 
-**The Verdict: 267,874 ops/sec. This is where ZERENE starts to flex its architecture.
+*The Verdict: 267,874 ops/sec. This is where ZERENE starts to flex its architecture.
 By distributing 10 million operations across 10 independent matching engines,
 throughput climbs to nearly 268 thousand operationsper second while median latency remains just 26.73 µs.*
 
-**Over 6.7 million trades were matched in 37.3 seconds, with the P99 latency staying close to 105 µs.
+*Over 6.7 million trades were matched in 37.3 seconds, with the P99 latency staying close to 105 µs.
 The common execution path remains remarkably consistent despite the workload increasing by an order of magnitude.*
 
 
