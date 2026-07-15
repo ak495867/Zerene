@@ -10,6 +10,7 @@ from zerene.models import Order, OrderType
 
 class Node:
     """Node in intrusive doubly linked list representing an active order at a price level."""
+
     __slots__ = ("order", "prev", "next", "_in_pool", "recycle_epoch")
 
     def __init__(self, order: Optional[Order] = None):
@@ -22,6 +23,7 @@ class Node:
 
 class DoublyLinkedList:
     """O(1) doubly linked FIFO queue."""
+
     __slots__ = ("head_node", "tail_node")
 
     def __init__(self):
@@ -74,14 +76,24 @@ class PriceLevel:
     Maintains strict FIFO queue of orders resting at this price via O(1) doubly linked list.
     Tracks both visible (display) and hidden volumes.
     """
-    __slots__ = ("price", "price_ticks", "queue", "order_nodes", "total_volume", "hidden_volume")
+
+    __slots__ = (
+        "price",
+        "price_ticks",
+        "queue",
+        "order_nodes",
+        "total_volume",
+        "hidden_volume",
+    )
 
     def __init__(self, price: float):
         self.price = price if isinstance(price, float) else price / 10000.0
-        self.price_ticks = int(round(price * 10000)) if isinstance(price, float) else int(price)
+        self.price_ticks = (
+            int(round(price * 10000)) if isinstance(price, float) else int(price)
+        )
         self.queue: DoublyLinkedList = DoublyLinkedList()
         self.order_nodes: Dict[int, Node] = {}
-        self.total_volume: float = 0.0   # Visible display volume
+        self.total_volume: float = 0.0  # Visible display volume
         self.hidden_volume: float = 0.0  # Hidden / iceberg remaining volume
 
     @property
@@ -92,6 +104,7 @@ class PriceLevel:
     def append(self, order: Order) -> None:
         """Adds an order to the tail of the FIFO queue in strict O(1)."""
         from zerene.pools import GLOBAL_NODE_POOL
+
         node = GLOBAL_NODE_POOL.acquire(order)
         self.queue.append(node)
         self.order_nodes[order.internal_id] = node
@@ -109,6 +122,7 @@ class PriceLevel:
             self.total_volume = max(0.0, self.total_volume - order.display_quantity)
         self.hidden_volume = max(0.0, self.hidden_volume - order.hidden_quantity)
         from zerene.pools import GLOBAL_NODE_POOL
+
         GLOBAL_NODE_POOL.release(node)
         return True
 
@@ -127,6 +141,7 @@ class PriceLevel:
             self.total_volume = max(0.0, self.total_volume - order.display_quantity)
         self.hidden_volume = max(0.0, self.hidden_volume - order.hidden_quantity)
         from zerene.pools import GLOBAL_NODE_POOL
+
         GLOBAL_NODE_POOL.release(node)
         return order
 
@@ -143,7 +158,10 @@ class PriceLevel:
 
             # If display quantity hits zero and hidden quantity remains, replenish exact iceberg_slice!
             if (order.display_quantity or 0.0) <= 1e-9 and order.hidden_quantity > 1e-9:
-                replenish = min(order.hidden_quantity, max(1.0, order.iceberg_slice or (order.quantity * 0.1)))
+                replenish = min(
+                    order.hidden_quantity,
+                    max(1.0, order.iceberg_slice or (order.quantity * 0.1)),
+                )
                 order.display_quantity = replenish
                 order.hidden_quantity -= replenish
                 self.total_volume += replenish
@@ -163,7 +181,11 @@ class PriceLevel:
                 self.total_volume = max(0.0, self.total_volume - filled_qty)
 
     def is_empty(self) -> bool:
-        return self.queue.head_node is None and self.total_volume <= 1e-9 and self.hidden_volume <= 1e-9
+        return (
+            self.queue.head_node is None
+            and self.total_volume <= 1e-9
+            and self.hidden_volume <= 1e-9
+        )
 
     def __len__(self) -> int:
         return len(self.order_nodes)

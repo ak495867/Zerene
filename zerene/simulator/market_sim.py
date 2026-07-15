@@ -26,10 +26,10 @@ class TradingSession(Enum):
 
 
 class VolatilityRegime(Enum):
-    CALM = "CALM"          # Low volatility
-    NORMAL = "NORMAL"      # Baseline volatility
+    CALM = "CALM"  # Low volatility
+    NORMAL = "NORMAL"  # Baseline volatility
     HIGH_VOL = "HIGH_VOL"  # High volatility / economic data release
-    CRISIS = "CRISIS"      # Extreme market distress / liquidation cascades
+    CRISIS = "CRISIS"  # Extreme market distress / liquidation cascades
 
 
 class MarketSimulator:
@@ -38,12 +38,13 @@ class MarketSimulator:
     Advances simulation clock deterministically via min-heap event processing.
     Injects synthetic background order flow and structural market events using vectorized isolated RNG.
     """
+
     def __init__(
         self,
         exchange: ExchangeVenue,
         initial_time: float = 0.0,
-        time_step: float = 1.0,         # Seconds per step/tick
-        poisson_rate: float = 5.0,      # Mean background orders arriving per second
+        time_step: float = 1.0,  # Seconds per step/tick
+        poisson_rate: float = 5.0,  # Mean background orders arriving per second
         seed: Optional[int] = None,
     ):
         self.exchange = exchange
@@ -58,7 +59,7 @@ class MarketSimulator:
         self.circuit_breaker_active: bool = False
         self.circuit_breaker_until: float = 0.0
         self.circuit_breaker_threshold: float = 0.10  # 10% deviation triggers halt
-        self.circuit_breaker_duration: float = 60.0   # Halt duration in seconds
+        self.circuit_breaker_duration: float = 60.0  # Halt duration in seconds
         self._reference_prices: Dict[str, float] = {}
         self.step_count = 0
         self._sim_counter: int = 0
@@ -78,21 +79,25 @@ class MarketSimulator:
 
     def inject_flash_crash(self, symbol: str, drop_pct: float = 0.15) -> None:
         """Injects a massive aggressive market sell cascade to simulate a flash crash."""
-        self.schedule_event(SimulationEvent(
-            timestamp=self.current_time + 0.1,
-            event_type=SimEventType.SHOCK_FLASH_CRASH,
-            symbol=symbol,
-            data={"drop_pct": drop_pct, "quantity": 500.0}
-        ))
+        self.schedule_event(
+            SimulationEvent(
+                timestamp=self.current_time + 0.1,
+                event_type=SimEventType.SHOCK_FLASH_CRASH,
+                symbol=symbol,
+                data={"drop_pct": drop_pct, "quantity": 500.0},
+            )
+        )
 
     def inject_news_shock(self, symbol: str, price_jump_pct: float = 0.05) -> None:
         """Injects a sudden macroeconomic news surprise."""
-        self.schedule_event(SimulationEvent(
-            timestamp=self.current_time + 0.1,
-            event_type=SimEventType.SHOCK_NEWS,
-            symbol=symbol,
-            data={"jump_pct": price_jump_pct}
-        ))
+        self.schedule_event(
+            SimulationEvent(
+                timestamp=self.current_time + 0.1,
+                event_type=SimEventType.SHOCK_NEWS,
+                symbol=symbol,
+                data={"jump_pct": price_jump_pct},
+            )
+        )
 
     def step(self, num_steps: int = 1) -> None:
         """Advances simulation clock by `num_steps` discrete intervals."""
@@ -101,7 +106,10 @@ class MarketSimulator:
             self.current_time += self.time_step
 
             # Check circuit breaker expiration
-            if self.circuit_breaker_active and self.current_time >= self.circuit_breaker_until:
+            if (
+                self.circuit_breaker_active
+                and self.current_time >= self.circuit_breaker_until
+            ):
                 self.circuit_breaker_active = False
                 self.session = TradingSession.CONTINUOUS
 
@@ -109,7 +117,9 @@ class MarketSimulator:
                 continue
 
             # Process all scheduled events up to current_time
-            while self.event_queue and self.event_queue[0].timestamp <= self.current_time:
+            while (
+                self.event_queue and self.event_queue[0].timestamp <= self.current_time
+            ):
                 ev = heapq.heappop(self.event_queue)
                 self._handle_event(ev)
 
@@ -126,11 +136,15 @@ class MarketSimulator:
 
             # Notify strategies of periodic timer ticks and new snapshots
             for symbol in self.exchange.engines.keys():
-                snapshot = self.exchange.get_order_book_snapshot(symbol, self.current_time)
+                snapshot = self.exchange.get_order_book_snapshot(
+                    symbol, self.current_time
+                )
                 if snapshot:
                     for strategy in self.strategies:
                         if symbol in strategy.symbols:
-                            new_orders = strategy.on_market_data(symbol, self.current_time, snapshot, self.exchange)
+                            new_orders = strategy.on_market_data(
+                                symbol, self.current_time, snapshot, self.exchange
+                            )
                             for o in new_orders:
                                 o.timestamp = self.current_time
                                 ev = GLOBAL_EVENT_POOL.acquire(
@@ -172,13 +186,16 @@ class MarketSimulator:
                     dev_pct = abs(engine.last_trade_price - ref_price) / ref_price
                     if dev_pct >= self.circuit_breaker_threshold:
                         self.circuit_breaker_active = True
-                        self.circuit_breaker_until = self.current_time + self.circuit_breaker_duration
+                        self.circuit_breaker_until = (
+                            self.current_time + self.circuit_breaker_duration
+                        )
                         self.session = TradingSession.HALTED
                         break
 
     def get_analytics_report(self):
         """Generates performance report across all engines and strategies."""
         from zerene.analytics.report import AnalyticsReport
+
         return AnalyticsReport.from_simulation(self)
 
     def _handle_event(self, ev: SimulationEvent) -> None:
@@ -207,17 +224,19 @@ class MarketSimulator:
                 new_mid = mid * (1.0 + jump)
                 # Cancel existing best bids and asks and drop new shifted quotes
                 for idx in range(1, 4):
-                    self.exchange.submit_order(Order(
-                        order_id=f"NEWS-B-{idx}",
-                        client_order_id="C-NEWS",
-                        symbol=ev.symbol,
-                        side=Side.BUY,
-                        order_type=OrderType.LIMIT,
-                        price=round(new_mid - idx * 0.1, 2),
-                        quantity=10.0,
-                        timestamp=self.current_time,
-                        owner_id="NEWS_SHOCK",
-                    ))
+                    self.exchange.submit_order(
+                        Order(
+                            order_id=f"NEWS-B-{idx}",
+                            client_order_id="C-NEWS",
+                            symbol=ev.symbol,
+                            side=Side.BUY,
+                            order_type=OrderType.LIMIT,
+                            price=round(new_mid - idx * 0.1, 2),
+                            quantity=10.0,
+                            timestamp=self.current_time,
+                            owner_id="NEWS_SHOCK",
+                        )
+                    )
 
         elif ev.event_type == SimEventType.SESSION_CHANGE:
             new_session = ev.data.get("session")
@@ -294,28 +313,32 @@ class MarketSimulator:
         engine = self.exchange.engines[symbol]
         base_price = 100.0 if "BTC" not in symbol else 60000.0
         for i in range(1, 11):
-            engine.process_order(Order(
-                order_id=f"SEED-B-{i}",
-                client_order_id=f"CS-{i}",
-                symbol=symbol,
-                side=Side.BUY,
-                order_type=OrderType.LIMIT,
-                price=round(base_price - (i * (base_price * 0.0005)), 2),
-                quantity=10.0,
-                timestamp=0.0,
-                owner_id="SEED_LP",
-            ))
-            engine.process_order(Order(
-                order_id=f"SEED-A-{i}",
-                client_order_id=f"CS-{i}",
-                symbol=symbol,
-                side=Side.SELL,
-                order_type=OrderType.LIMIT,
-                price=round(base_price + (i * (base_price * 0.0005)), 2),
-                quantity=10.0,
-                timestamp=0.0,
-                owner_id="SEED_LP",
-            ))
+            engine.process_order(
+                Order(
+                    order_id=f"SEED-B-{i}",
+                    client_order_id=f"CS-{i}",
+                    symbol=symbol,
+                    side=Side.BUY,
+                    order_type=OrderType.LIMIT,
+                    price=round(base_price - (i * (base_price * 0.0005)), 2),
+                    quantity=10.0,
+                    timestamp=0.0,
+                    owner_id="SEED_LP",
+                )
+            )
+            engine.process_order(
+                Order(
+                    order_id=f"SEED-A-{i}",
+                    client_order_id=f"CS-{i}",
+                    symbol=symbol,
+                    side=Side.SELL,
+                    order_type=OrderType.LIMIT,
+                    price=round(base_price + (i * (base_price * 0.0005)), 2),
+                    quantity=10.0,
+                    timestamp=0.0,
+                    owner_id="SEED_LP",
+                )
+            )
 
 
 def np_poisson(lam: float) -> int:

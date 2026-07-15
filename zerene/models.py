@@ -64,6 +64,7 @@ class Order:
     Core Order object representing a single participant request in ZERENE.
     Strictly tracks visible vs hidden tranches for institutional execution quality.
     """
+
     order_id: str
     client_order_id: str
     symbol: str
@@ -73,11 +74,13 @@ class Order:
     price: Optional[float] = None
     filled_quantity: float = 0.0
     display_quantity: Optional[float] = None  # Visible tranche for Iceberg
-    hidden_quantity: float = 0.0              # Remaining hidden tranche for Iceberg/Hidden
-    iceberg_slice: float = 0.0                # Recorded initial visible tranche size for precise replenishment
+    hidden_quantity: float = 0.0  # Remaining hidden tranche for Iceberg/Hidden
+    iceberg_slice: float = (
+        0.0  # Recorded initial visible tranche size for precise replenishment
+    )
     stop_price: Optional[float] = None
     time_in_force: TimeInForce = TimeInForce.GTC
-    timestamp: float = 0.0                    # Arrival or replenishment timestamp (nanoseconds/seconds)
+    timestamp: float = 0.0  # Arrival or replenishment timestamp (nanoseconds/seconds)
     owner_id: str = "DEFAULT"
     status: OrderStatus = OrderStatus.NEW
     reject_reason: Optional[str] = None
@@ -119,6 +122,7 @@ class Trade:
     """
     Represents an executed match between two orders.
     """
+
     trade_id: str
     maker_order_id: str
     taker_order_id: str
@@ -153,9 +157,10 @@ class OrderEvent:
     """
     Event envelope traversing the multi-hop latency pipeline.
     """
+
     event_id: str
     event_type: EventType
-    timestamp: float          # Actual event occurrence / arrival time
+    timestamp: float  # Actual event occurrence / arrival time
     symbol: str
     order: Optional[Order] = None
     trade: Optional[Trade] = None

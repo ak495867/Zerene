@@ -1,6 +1,7 @@
 """
 Strategy plugins subpackage.
 """
+
 from .base import Strategy
 from .market_maker import MarketMakerStrategy
 from .momentum import MomentumStrategy

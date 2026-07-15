@@ -17,6 +17,7 @@ class SyntheticFlowGenerator:
     Models both self-excitation (`alpha_self`) and cross-excitation (`alpha_cross`),
     as well as dynamic quote skewing based on high-frequency OFI signals.
     """
+
     def __init__(
         self,
         symbol: str = "BTC-USD",
@@ -53,7 +54,9 @@ class SyntheticFlowGenerator:
         self.current_ofi = bid_vol_change - ask_vol_change
         return self.current_ofi
 
-    def generate_batch(self, current_time: float, dt: float, mid_price: float = 100.0) -> List[Order]:
+    def generate_batch(
+        self, current_time: float, dt: float, mid_price: float = 100.0
+    ) -> List[Order]:
         """Generates a batch of synthetic orders across time interval `dt` governed by multi-kernel Hawkes + OFI."""
         orders: List[Order] = []
         if dt <= 0.0:
@@ -62,7 +65,9 @@ class SyntheticFlowGenerator:
         # Exponential decay of intensity since last event
         decay = math.exp(-self.beta * max(0.0, current_time - self.last_event_time))
         self.intensity_buy = self.mu_buy + (self.intensity_buy - self.mu_buy) * decay
-        self.intensity_sell = self.mu_sell + (self.intensity_sell - self.mu_sell) * decay
+        self.intensity_sell = (
+            self.mu_sell + (self.intensity_sell - self.mu_sell) * decay
+        )
 
         # Condition base intensity on OFI
         ofi_skew = max(-5.0, min(5.0, self.current_ofi * 0.1))
@@ -97,45 +102,58 @@ class SyntheticFlowGenerator:
             self.last_event_time = current_time
 
             # When OFI is strongly skewed toward one side, probability of aggressive market order increases
-            market_prob = 0.15 + (0.10 if (is_buy and self.current_ofi > 0) or (not is_buy and self.current_ofi < 0) else 0.0)
+            market_prob = 0.15 + (
+                0.10
+                if (is_buy and self.current_ofi > 0)
+                or (not is_buy and self.current_ofi < 0)
+                else 0.0
+            )
             is_market = market_rands[idx] < market_prob
 
             if is_market:
                 self._order_counter += 1
-                orders.append(GLOBAL_ORDER_POOL.acquire(
-                    order_id=f"SYN-M-{self._order_counter}",
-                    client_order_id=f"C-SYN-{idx}",
-                    symbol=self.symbol,
-                    side=side,
-                    order_type=OrderType.MARKET,
-                    price=0.0,
-                    quantity=round(float(quantities[idx]), 2),
-                    timestamp=current_time,
-                    owner_id="SYNTHETIC_FLOW",
-                ))
+                orders.append(
+                    GLOBAL_ORDER_POOL.acquire(
+                        order_id=f"SYN-M-{self._order_counter}",
+                        client_order_id=f"C-SYN-{idx}",
+                        symbol=self.symbol,
+                        side=side,
+                        order_type=OrderType.MARKET,
+                        price=0.0,
+                        quantity=round(float(quantities[idx]), 2),
+                        timestamp=current_time,
+                        owner_id="SYNTHETIC_FLOW",
+                    )
+                )
             else:
                 # Limit order placement relative to mid price skewed by OFI
                 offset = float(offsets[idx])
                 if is_buy:
                     # If OFI > 0, buy limits place closer to mid or inside spread
-                    price = round(mid_price - max(0.01, offset - max(0.0, ofi_skew * 0.05)), 2)
+                    price = round(
+                        mid_price - max(0.01, offset - max(0.0, ofi_skew * 0.05)), 2
+                    )
                 else:
-                    price = round(mid_price + max(0.01, offset + min(0.0, ofi_skew * 0.05)), 2)
+                    price = round(
+                        mid_price + max(0.01, offset + min(0.0, ofi_skew * 0.05)), 2
+                    )
 
                 if price <= 0:
                     continue
 
                 self._order_counter += 1
-                orders.append(GLOBAL_ORDER_POOL.acquire(
-                    order_id=f"SYN-L-{self._order_counter}",
-                    client_order_id=f"C-SYN-{idx}",
-                    symbol=self.symbol,
-                    side=side,
-                    order_type=OrderType.LIMIT,
-                    price=price,
-                    quantity=round(float(quantities[idx]), 2),
-                    timestamp=current_time,
-                    owner_id="SYNTHETIC_FLOW",
-                ))
+                orders.append(
+                    GLOBAL_ORDER_POOL.acquire(
+                        order_id=f"SYN-L-{self._order_counter}",
+                        client_order_id=f"C-SYN-{idx}",
+                        symbol=self.symbol,
+                        side=side,
+                        order_type=OrderType.LIMIT,
+                        price=price,
+                        quantity=round(float(quantities[idx]), 2),
+                        timestamp=current_time,
+                        owner_id="SYNTHETIC_FLOW",
+                    )
+                )
 
         return orders

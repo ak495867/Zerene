@@ -35,39 +35,51 @@ class BenchmarkRunner:
     Streaming architecture: generates and executes each operation inline (no pre-allocation of
     instruction lists), so memory usage stays bounded regardless of total operation count.
     """
+
     def __init__(self, symbol: str = "BENCH-USD"):
         self.symbol = symbol
 
-    def run(self, num_orders: int = 100_000, workload: str = "realistic", verbose: bool = True) -> Dict[str, Any]:
+    def run(
+        self,
+        num_orders: int = 100_000,
+        workload: str = "realistic",
+        verbose: bool = True,
+    ) -> Dict[str, Any]:
         engine = MatchingEngine(self.symbol)
 
         # Pre-seed resting order book across 250 price levels on each side
         for idx in range(1, 251):
-            engine.process_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"PRE-B-{idx}",
-                client_order_id="CPRE",
-                symbol=self.symbol,
-                side=Side.BUY,
-                order_type=OrderType.LIMIT,
-                price=round(100.0 - (idx * 0.05), 2),
-                quantity=1000.0,
-                timestamp=0.0,
-                owner_id="BENCH_LP",
-            ))
-            engine.process_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"PRE-A-{idx}",
-                client_order_id="CPRE",
-                symbol=self.symbol,
-                side=Side.SELL,
-                order_type=OrderType.LIMIT,
-                price=round(100.0 + (idx * 0.05), 2),
-                quantity=1000.0,
-                timestamp=0.0,
-                owner_id="BENCH_LP",
-            ))
+            engine.process_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"PRE-B-{idx}",
+                    client_order_id="CPRE",
+                    symbol=self.symbol,
+                    side=Side.BUY,
+                    order_type=OrderType.LIMIT,
+                    price=round(100.0 - (idx * 0.05), 2),
+                    quantity=1000.0,
+                    timestamp=0.0,
+                    owner_id="BENCH_LP",
+                )
+            )
+            engine.process_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"PRE-A-{idx}",
+                    client_order_id="CPRE",
+                    symbol=self.symbol,
+                    side=Side.SELL,
+                    order_type=OrderType.LIMIT,
+                    price=round(100.0 + (idx * 0.05), 2),
+                    quantity=1000.0,
+                    timestamp=0.0,
+                    owner_id="BENCH_LP",
+                )
+            )
 
         # Capped circular buffer for cancel/modify target tracking
-        active_resting_ids: List[str] = [f"PRE-B-{idx}" for idx in range(1, 251)] + [f"PRE-A-{idx}" for idx in range(1, 251)]
+        active_resting_ids: List[str] = [f"PRE-B-{idx}" for idx in range(1, 251)] + [
+            f"PRE-A-{idx}" for idx in range(1, 251)
+        ]
 
         # Counters
         limit_count = 0
@@ -83,7 +95,9 @@ class BenchmarkRunner:
 
         # Streaming execution: generate + execute each operation inline
         if verbose and num_orders >= _FIRST_PROGRESS:
-            print(f"  [bench] Streaming {num_orders:,} operations (generate + execute inline)...")
+            print(
+                f"  [bench] Streaming {num_orders:,} operations (generate + execute inline)..."
+            )
 
         start_t = time.perf_counter()
 
@@ -135,7 +149,11 @@ class BenchmarkRunner:
                     actual_modifies += 1
             else:
                 limit_count += 1
-                price_offset = random.uniform(-0.5, 0.5) if workload == "realistic" else random.uniform(-2.0, 2.0)
+                price_offset = (
+                    random.uniform(-0.5, 0.5)
+                    if workload == "realistic"
+                    else random.uniform(-2.0, 2.0)
+                )
                 price = round(100.0 + price_offset, 2)
                 o = GLOBAL_ORDER_POOL.acquire(
                     order_id=f"TEST-L-{i}",
@@ -154,7 +172,9 @@ class BenchmarkRunner:
                     active_resting_ids.append(o.order_id)
                 else:
                     # Replace a random existing entry (reservoir-style)
-                    active_resting_ids[random.randint(0, _MAX_RESTING_TRACKER - 1)] = o.order_id
+                    active_resting_ids[random.randint(0, _MAX_RESTING_TRACKER - 1)] = (
+                        o.order_id
+                    )
 
             t1 = time.perf_counter_ns()
             lat = float(t1 - t0)
@@ -180,7 +200,9 @@ class BenchmarkRunner:
                     elapsed_so_far = time.perf_counter() - start_t
                     rate = ops_done / max(1e-9, elapsed_so_far)
                     pct = (ops_done / num_orders) * 100
-                    print(f"  [bench] {ops_done:>13,} / {num_orders:,} ops ({pct:5.1f}%) | {rate:,.0f} ops/sec | trades: {engine._trade_counter:,}")
+                    print(
+                        f"  [bench] {ops_done:>13,} / {num_orders:,} ops ({pct:5.1f}%) | {rate:,.0f} ops/sec | trades: {engine._trade_counter:,}"
+                    )
 
         end_t = time.perf_counter()
         elapsed = max(1e-9, end_t - start_t)
@@ -212,7 +234,9 @@ class BenchmarkRunner:
                 "workload_mode": workload,
                 "total_operations": total_ops,
                 "limit_inserts_pct": round((limit_count / max(1, total_ops)) * 100, 1),
-                "market_inserts_pct": round((market_count / max(1, total_ops)) * 100, 1),
+                "market_inserts_pct": round(
+                    (market_count / max(1, total_ops)) * 100, 1
+                ),
                 "cancels_pct": round((cancel_count / max(1, total_ops)) * 100, 1),
                 "modifies_pct": round((modify_count / max(1, total_ops)) * 100, 1),
                 "latency_sample_size": n,

@@ -22,6 +22,7 @@ class RLTradingEnvironment:
       - Discrete(5): [0: Hold, 1: Buy Limit at Bid, 2: Sell Limit at Ask, 3: Buy Market, 4: Sell Market]
       - Or continuous action vectors for quoting spreads and sizes.
     """
+
     def __init__(
         self,
         symbol: str = "BTC-USD",
@@ -41,7 +42,9 @@ class RLTradingEnvironment:
         self.prev_pnl = 0.0
         self.owner_id = "RL_AGENT_01"
         self.rng = np.random.default_rng(seed)
-        self.simulator = simulator or MarketSimulator(self.exchange, time_step=1.0, poisson_rate=3.0, seed=seed)
+        self.simulator = simulator or MarketSimulator(
+            self.exchange, time_step=1.0, poisson_rate=3.0, seed=seed
+        )
 
     def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         """Resets the environment and returns the initial observation state vector."""
@@ -51,8 +54,10 @@ class RLTradingEnvironment:
         self.inventory = 0.0
         self.prev_pnl = 0.0
         self.exchange = ExchangeVenue("ZERENE-RL", symbols=[self.symbol])
-        self.simulator = MarketSimulator(self.exchange, time_step=1.0, poisson_rate=3.0, seed=seed)
-        
+        self.simulator = MarketSimulator(
+            self.exchange, time_step=1.0, poisson_rate=3.0, seed=seed
+        )
+
         # Inject initial baseline book liquidity
         self._inject_baseline_liquidity()
         obs = self._get_observation()
@@ -141,7 +146,7 @@ class RLTradingEnvironment:
 
         # Calculate reward: PnL delta minus inventory risk penalty (Avellaneda quadratic holding cost)
         pnl_delta = current_pnl - self.prev_pnl
-        reward = pnl_delta - (self.risk_penalty_coeff * (self.inventory ** 2))
+        reward = pnl_delta - (self.risk_penalty_coeff * (self.inventory**2))
         self.prev_pnl = current_pnl
 
         # Check risk kill switch for termination
@@ -166,62 +171,74 @@ class RLTradingEnvironment:
         state = self.exchange.risk_engine.states.get(self.owner_id)
         pnl = state.realized_pnl if state else 0.0
 
-        return np.array([mid, spread, imbalance, self.inventory, pnl, 0.02], dtype=np.float32)
+        return np.array(
+            [mid, spread, imbalance, self.inventory, pnl, 0.02], dtype=np.float32
+        )
 
     def _inject_baseline_liquidity(self) -> None:
         engine = self.exchange.engines[self.symbol]
         for idx in range(1, 6):
-            engine.process_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"BASE-B-{idx}",
-                client_order_id=f"CB-{idx}",
-                symbol=self.symbol,
-                side=Side.BUY,
-                order_type=OrderType.LIMIT,
-                price=100.0 - (idx * 0.1),
-                quantity=5.0,
-                timestamp=0.0,
-                owner_id="BASE_LP",
-            ))
-            engine.process_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"BASE-A-{idx}",
-                client_order_id=f"CA-{idx}",
-                symbol=self.symbol,
-                side=Side.SELL,
-                order_type=OrderType.LIMIT,
-                price=100.0 + (idx * 0.1),
-                quantity=5.0,
-                timestamp=0.0,
-                owner_id="BASE_LP",
-            ))
+            engine.process_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"BASE-B-{idx}",
+                    client_order_id=f"CB-{idx}",
+                    symbol=self.symbol,
+                    side=Side.BUY,
+                    order_type=OrderType.LIMIT,
+                    price=100.0 - (idx * 0.1),
+                    quantity=5.0,
+                    timestamp=0.0,
+                    owner_id="BASE_LP",
+                )
+            )
+            engine.process_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"BASE-A-{idx}",
+                    client_order_id=f"CA-{idx}",
+                    symbol=self.symbol,
+                    side=Side.SELL,
+                    order_type=OrderType.LIMIT,
+                    price=100.0 + (idx * 0.1),
+                    quantity=5.0,
+                    timestamp=0.0,
+                    owner_id="BASE_LP",
+                )
+            )
 
     def _inject_noise_flow(self) -> None:
         book = self.exchange.engines[self.symbol].order_book
         mid = book.mid_price() or 100.0
         side = Side.BUY if self.rng.random() < 0.5 else Side.SELL
-        is_market = self.rng.random() < 0.35  # 35% chance of aggressive market order taking resting liquidity
+        is_market = (
+            self.rng.random() < 0.35
+        )  # 35% chance of aggressive market order taking resting liquidity
 
         if is_market:
-            self.exchange.submit_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"NOISE-M-{uuid.uuid4().hex[:6]}",
-                client_order_id=f"CN-M-{uuid.uuid4().hex[:6]}",
-                symbol=self.symbol,
-                side=side,
-                order_type=OrderType.MARKET,
-                price=0.0,
-                quantity=round(float(self.rng.uniform(0.5, 2.0)), 2),
-                timestamp=float(self.current_step),
-                owner_id="NOISE_TRADER",
-            ))
+            self.exchange.submit_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"NOISE-M-{uuid.uuid4().hex[:6]}",
+                    client_order_id=f"CN-M-{uuid.uuid4().hex[:6]}",
+                    symbol=self.symbol,
+                    side=side,
+                    order_type=OrderType.MARKET,
+                    price=0.0,
+                    quantity=round(float(self.rng.uniform(0.5, 2.0)), 2),
+                    timestamp=float(self.current_step),
+                    owner_id="NOISE_TRADER",
+                )
+            )
         else:
             price = round(mid + float(self.rng.uniform(-0.3, 0.3)), 2)
-            self.exchange.submit_order(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"NOISE-L-{uuid.uuid4().hex[:6]}",
-                client_order_id=f"CN-L-{uuid.uuid4().hex[:6]}",
-                symbol=self.symbol,
-                side=side,
-                order_type=OrderType.LIMIT,
-                price=price,
-                quantity=round(float(self.rng.uniform(0.5, 3.0)), 2),
-                timestamp=float(self.current_step),
-                owner_id="NOISE_TRADER",
-            ))
+            self.exchange.submit_order(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"NOISE-L-{uuid.uuid4().hex[:6]}",
+                    client_order_id=f"CN-L-{uuid.uuid4().hex[:6]}",
+                    symbol=self.symbol,
+                    side=side,
+                    order_type=OrderType.LIMIT,
+                    price=price,
+                    quantity=round(float(self.rng.uniform(0.5, 3.0)), 2),
+                    timestamp=float(self.current_step),
+                    owner_id="NOISE_TRADER",
+                )
+            )

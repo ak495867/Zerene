@@ -15,6 +15,7 @@ class StatArbPairsStrategy(Strategy):
     Pairs trading strategy tracking the cointegrated spread between two symbols:
     Spread = Price_A - (beta * Price_B)
     """
+
     def __init__(
         self,
         symbol_a: str,
@@ -37,11 +38,16 @@ class StatArbPairsStrategy(Strategy):
         self.last_prices: Dict[str, float] = {}
         self._order_counter: int = 0
 
-    def on_market_data(self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue) -> List[Order]:
+    def on_market_data(
+        self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue
+    ) -> List[Order]:
         if book_snapshot.mid_price is not None:
             self.last_prices[symbol] = book_snapshot.mid_price
 
-        if self.symbol_a not in self.last_prices or self.symbol_b not in self.last_prices:
+        if (
+            self.symbol_a not in self.last_prices
+            or self.symbol_b not in self.last_prices
+        ):
             return []
 
         pa = self.last_prices[self.symbol_a]
@@ -56,52 +62,60 @@ class StatArbPairsStrategy(Strategy):
         # Spread high -> Short A, Long B
         if z_score > self.z_entry and pos_a >= 0:
             self._order_counter += 1
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"SA-S-{self.owner_id}-{self._order_counter}",
-                client_order_id=f"C-SA-S-{self._order_counter}",
-                symbol=self.symbol_a,
-                side=Side.SELL,
-                order_type=OrderType.MARKET,
-                quantity=self.trade_qty + abs(pos_a),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"SA-S-{self.owner_id}-{self._order_counter}",
+                    client_order_id=f"C-SA-S-{self._order_counter}",
+                    symbol=self.symbol_a,
+                    side=Side.SELL,
+                    order_type=OrderType.MARKET,
+                    quantity=self.trade_qty + abs(pos_a),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
             self._order_counter += 1
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"SA-B-{self.owner_id}-{self._order_counter}",
-                client_order_id=f"C-SA-B-{self._order_counter}",
-                symbol=self.symbol_b,
-                side=Side.BUY,
-                order_type=OrderType.MARKET,
-                quantity=(self.trade_qty * self.beta) + abs(pos_b),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"SA-B-{self.owner_id}-{self._order_counter}",
+                    client_order_id=f"C-SA-B-{self._order_counter}",
+                    symbol=self.symbol_b,
+                    side=Side.BUY,
+                    order_type=OrderType.MARKET,
+                    quantity=(self.trade_qty * self.beta) + abs(pos_b),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
 
         # Spread low -> Long A, Short B
         elif z_score < -self.z_entry and pos_a <= 0:
             self._order_counter += 1
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"SA-B-{self.owner_id}-{self._order_counter}",
-                client_order_id=f"C-SA-B-{self._order_counter}",
-                symbol=self.symbol_a,
-                side=Side.BUY,
-                order_type=OrderType.MARKET,
-                quantity=self.trade_qty + abs(pos_a),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"SA-B-{self.owner_id}-{self._order_counter}",
+                    client_order_id=f"C-SA-B-{self._order_counter}",
+                    symbol=self.symbol_a,
+                    side=Side.BUY,
+                    order_type=OrderType.MARKET,
+                    quantity=self.trade_qty + abs(pos_a),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
             self._order_counter += 1
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=f"SA-S-{self.owner_id}-{self._order_counter}",
-                client_order_id=f"C-SA-S-{self._order_counter}",
-                symbol=self.symbol_b,
-                side=Side.SELL,
-                order_type=OrderType.MARKET,
-                quantity=(self.trade_qty * self.beta) + abs(pos_b),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=f"SA-S-{self.owner_id}-{self._order_counter}",
+                    client_order_id=f"C-SA-S-{self._order_counter}",
+                    symbol=self.symbol_b,
+                    side=Side.SELL,
+                    order_type=OrderType.MARKET,
+                    quantity=(self.trade_qty * self.beta) + abs(pos_b),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
 
         return orders
 
@@ -111,10 +125,17 @@ class StatArbPairsStrategy(Strategy):
             taker_side = trade.aggressor_side
             if trade.maker_owner_id == self.owner_id:
                 delta = trade.quantity if maker_side == Side.BUY else -trade.quantity
-                self.positions[trade.symbol] = self.positions.get(trade.symbol, 0.0) + delta
-            if trade.taker_owner_id == self.owner_id and trade.taker_owner_id != trade.maker_owner_id:
+                self.positions[trade.symbol] = (
+                    self.positions.get(trade.symbol, 0.0) + delta
+                )
+            if (
+                trade.taker_owner_id == self.owner_id
+                and trade.taker_owner_id != trade.maker_owner_id
+            ):
                 delta = trade.quantity if taker_side == Side.BUY else -trade.quantity
-                self.positions[trade.symbol] = self.positions.get(trade.symbol, 0.0) + delta
+                self.positions[trade.symbol] = (
+                    self.positions.get(trade.symbol, 0.0) + delta
+                )
         return []
 
     def on_timer(self, timestamp: float, exchange: ExchangeVenue) -> List[Order]:

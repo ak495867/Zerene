@@ -23,11 +23,14 @@ def calculate_max_drawdown(equity_curve: List[float]) -> float:
     return max_dd
 
 
-def calculate_sharpe_ratio(returns: List[float], risk_free_rate: float = 0.0, periods_per_year: int = 252) -> float:
+def calculate_sharpe_ratio(
+    returns: List[float], risk_free_rate: float = 0.0, periods_per_year: int = 252
+) -> float:
     """Calculates annualized Sharpe Ratio from periodic return series."""
     if len(returns) < 2:
         return 0.0
     import numpy as np
+
     arr = np.array(returns)
     mean = float(np.mean(arr)) - (risk_free_rate / periods_per_year)
     std = float(np.std(arr, ddof=1))
@@ -36,11 +39,14 @@ def calculate_sharpe_ratio(returns: List[float], risk_free_rate: float = 0.0, pe
     return (mean / std) * math.sqrt(periods_per_year)
 
 
-def calculate_sortino_ratio(returns: List[float], risk_free_rate: float = 0.0, periods_per_year: int = 252) -> float:
+def calculate_sortino_ratio(
+    returns: List[float], risk_free_rate: float = 0.0, periods_per_year: int = 252
+) -> float:
     """Calculates annualized Sortino Ratio (downside risk adjusted)."""
     if len(returns) < 2:
         return 0.0
     import numpy as np
+
     arr = np.array(returns)
     mean = float(np.mean(arr)) - (risk_free_rate / periods_per_year)
     downside = arr[arr < 0]
@@ -69,7 +75,9 @@ def calculate_profit_factor(trade_pnls: List[float]) -> float:
     return gross_gains / gross_losses
 
 
-def calculate_effective_spread(trades: List[Trade], mid_prices: Dict[str, float]) -> float:
+def calculate_effective_spread(
+    trades: List[Trade], mid_prices: Dict[str, float]
+) -> float:
     """
     Calculates average effective spread across trades:
     Effective Spread = 2 * |Trade Price - Mid Price|
@@ -86,7 +94,9 @@ def calculate_effective_spread(trades: List[Trade], mid_prices: Dict[str, float]
     return total / max(1, count)
 
 
-def calculate_adverse_selection(trades: List[Trade], future_mids: Dict[str, float]) -> float:
+def calculate_adverse_selection(
+    trades: List[Trade], future_mids: Dict[str, float]
+) -> float:
     """
     Calculates adverse selection / price impact at specific time horizon tau:
     Adverse Selection = Sign(Aggressor Side) * (Mid_future - Trade Price) / Trade Price

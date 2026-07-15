@@ -19,6 +19,7 @@ class MatchingEngine:
     Executes trades in strict price-time priority (FIFO).
     Uses bounded history (`maxlen=100_000`) and iterative stop order processing without recursion.
     """
+
     def __init__(self, symbol: str, max_history_len: int = 100_000):
         self.symbol = symbol
         self.order_book = OrderBook(symbol)
@@ -95,8 +96,16 @@ class MatchingEngine:
 
         # Handle remaining quantity based on order type / TIF
         if order.remaining_quantity > 1e-9:
-            if order.order_type == OrderType.MARKET or order.time_in_force in (TimeInForce.IOC, TimeInForce.FOK) or order.order_type == OrderType.IOC:
-                order.status = OrderStatus.PARTIALLY_FILLED if order.filled_quantity > 0 else OrderStatus.CANCELED
+            if (
+                order.order_type == OrderType.MARKET
+                or order.time_in_force in (TimeInForce.IOC, TimeInForce.FOK)
+                or order.order_type == OrderType.IOC
+            ):
+                order.status = (
+                    OrderStatus.PARTIALLY_FILLED
+                    if order.filled_quantity > 0
+                    else OrderStatus.CANCELED
+                )
             else:
                 # Place residual on limit order book
                 if order.status == OrderStatus.NEW and order.filled_quantity > 0:
@@ -107,7 +116,9 @@ class MatchingEngine:
 
         # Check and trigger stop orders if trades occurred
         if self.last_trade_price is not None and trades:
-            triggered_orders = self.stop_manager.check_triggers(self.last_trade_price, order.timestamp)
+            triggered_orders = self.stop_manager.check_triggers(
+                self.last_trade_price, order.timestamp
+            )
             if triggered_orders:
                 self._pending_orders.extend(triggered_orders)
 
@@ -126,14 +137,22 @@ class MatchingEngine:
         """Cancels all resting limit orders and stop orders belonging to `owner_id`."""
         canceled_orders: List[Order] = []
         # Find all resting limit orders for this participant
-        resting_ids = [oid for oid, o in self.order_book.order_map.items() if o.owner_id == owner_id]
+        resting_ids = [
+            oid
+            for oid, o in self.order_book.order_map.items()
+            if o.owner_id == owner_id
+        ]
         for oid in resting_ids:
             c = self.cancel_order(oid)
             if c:
                 canceled_orders.append(c)
 
         # Find all resting stop orders for this participant
-        stop_ids = [oid for oid, o in self.stop_manager.order_map.items() if o.owner_id == owner_id]
+        stop_ids = [
+            oid
+            for oid, o in self.stop_manager.order_map.items()
+            if o.owner_id == owner_id
+        ]
         for oid in stop_ids:
             c = self.cancel_order(oid)
             if c:
@@ -155,8 +174,13 @@ class MatchingEngine:
         existing = self.order_book.order_map.get(order_id)
         if existing and new_price is not None:
             would_cross = (
-                (existing.side == Side.BUY and self.order_book.best_ask() is not None and round(new_price, 8) >= self.order_book.best_ask()) or
-                (existing.side == Side.SELL and self.order_book.best_bid() is not None and round(new_price, 8) <= self.order_book.best_bid())
+                existing.side == Side.BUY
+                and self.order_book.best_ask() is not None
+                and round(new_price, 8) >= self.order_book.best_ask()
+            ) or (
+                existing.side == Side.SELL
+                and self.order_book.best_bid() is not None
+                and round(new_price, 8) <= self.order_book.best_bid()
             )
             if would_cross:
                 # If modified quantity is less than what's already filled, the remainder is canceled
@@ -171,13 +195,17 @@ class MatchingEngine:
                     removed.price = round(new_price, 8)
                     removed.quantity = new_quantity
                     if removed.display_quantity is not None:
-                        removed.display_quantity = min(removed.display_quantity, new_quantity)
+                        removed.display_quantity = min(
+                            removed.display_quantity, new_quantity
+                        )
                     removed.timestamp = timestamp
                     removed.status = OrderStatus.REPLACED
                     self.process_order(removed)
                     return True, removed, "PRIORITY_LOST_REPLACED_CROSSED"
 
-        return self.order_book.modify_order(order_id, new_quantity, new_price, timestamp)
+        return self.order_book.modify_order(
+            order_id, new_quantity, new_price, timestamp
+        )
 
     def _match(self, incoming: Order) -> List[Trade]:
         """Core matching loop crossing incoming order against opposite resting book."""
@@ -190,14 +218,22 @@ class MatchingEngine:
                 # Check price limits
                 if best_price is None:
                     break
-                if incoming.order_type != OrderType.MARKET and incoming.price is not None and incoming.price < best_price:
+                if (
+                    incoming.order_type != OrderType.MARKET
+                    and incoming.price is not None
+                    and incoming.price < best_price
+                ):
                     break
                 level = self.order_book.asks[best_price]
             else:
                 best_price = self.order_book.best_bid()
                 if best_price is None:
                     break
-                if incoming.order_type != OrderType.MARKET and incoming.price is not None and incoming.price > best_price:
+                if (
+                    incoming.order_type != OrderType.MARKET
+                    and incoming.price is not None
+                    and incoming.price > best_price
+                ):
                     break
                 level = self.order_book.bids[best_price]
 
@@ -249,9 +285,15 @@ class MatchingEngine:
 
             # Clean empty price level
             self.order_book.clean_empty_level(best_price, incoming.side.opposite)
-            if self.order_book.bids.get(best_price) is not None and self.order_book.bids[best_price].is_empty():
+            if (
+                self.order_book.bids.get(best_price) is not None
+                and self.order_book.bids[best_price].is_empty()
+            ):
                 self.order_book.clean_empty_level(best_price, Side.BUY)
-            if self.order_book.asks.get(best_price) is not None and self.order_book.asks[best_price].is_empty():
+            if (
+                self.order_book.asks.get(best_price) is not None
+                and self.order_book.asks[best_price].is_empty()
+            ):
                 self.order_book.clean_empty_level(best_price, Side.SELL)
 
         return trades
@@ -260,11 +302,19 @@ class MatchingEngine:
         """Checks if total available liquidity within limit price >= order.quantity using exact integer ticks."""
         required = order.quantity
         available = 0.0
-        order_ticks = int(round(order.price * 10000)) if isinstance(order.price, float) else (int(order.price) if order.price is not None else None)
+        order_ticks = (
+            int(round(order.price * 10000))
+            if isinstance(order.price, float)
+            else (int(order.price) if order.price is not None else None)
+        )
 
         if order.side == Side.BUY:
             for price_ticks in self.order_book.sorted_asks:
-                if order.order_type != OrderType.MARKET and order_ticks is not None and price_ticks > order_ticks:
+                if (
+                    order.order_type != OrderType.MARKET
+                    and order_ticks is not None
+                    and price_ticks > order_ticks
+                ):
                     break
                 lvl = self.order_book.asks.get(price_ticks)
                 if lvl:
@@ -273,7 +323,11 @@ class MatchingEngine:
                     return True
         else:
             for price_ticks in self.order_book.sorted_bids:
-                if order.order_type != OrderType.MARKET and order_ticks is not None and price_ticks < order_ticks:
+                if (
+                    order.order_type != OrderType.MARKET
+                    and order_ticks is not None
+                    and price_ticks < order_ticks
+                ):
                     break
                 lvl = self.order_book.bids.get(price_ticks)
                 if lvl:

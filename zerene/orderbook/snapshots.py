@@ -12,6 +12,7 @@ class OrderBookSnapshot:
     """
     Immutable representation of the book state at a given timestamp.
     """
+
     symbol: str
     timestamp: float
     bids: List[Tuple[float, float]]  # (price, visible_volume)
@@ -21,7 +22,9 @@ class OrderBookSnapshot:
     imbalance: float
 
     @classmethod
-    def from_book(cls, book: OrderBook, timestamp: float, levels: int = 10) -> "OrderBookSnapshot":
+    def from_book(
+        cls, book: OrderBook, timestamp: float, levels: int = 10
+    ) -> "OrderBookSnapshot":
         bids_depth, asks_depth = book.get_depth(levels=levels)
         return cls(
             symbol=book.symbol,
@@ -30,7 +33,7 @@ class OrderBookSnapshot:
             asks=asks_depth,
             mid_price=book.mid_price(),
             spread=book.spread(),
-            imbalance=book.imbalance(levels=levels)
+            imbalance=book.imbalance(levels=levels),
         )
 
     def to_dict(self) -> Dict[str, Any]:

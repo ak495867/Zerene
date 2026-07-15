@@ -14,18 +14,19 @@ class ExchangeVenue:
     Simulated Exchange Venue hosting matching engines across multiple symbols.
     Manages order ingestion, latency routing, fee schedules, and risk reconciliation.
     """
+
     def __init__(
         self,
         venue_name: str = "ZERENE-X",
         symbols: Optional[List[str]] = None,
-        maker_fee_bps: float = -0.5,   # Maker rebate (-0.5 bps)
-        taker_fee_bps: float = 2.0,    # Taker fee (+2.0 bps)
+        maker_fee_bps: float = -0.5,  # Maker rebate (-0.5 bps)
+        taker_fee_bps: float = 2.0,  # Taker fee (+2.0 bps)
         risk_engine: Optional[RiskEngine] = None,
         latency_gateway: Optional[LatencyGateway] = None,
     ):
         self.venue_name = venue_name
         self.engines: Dict[str, MatchingEngine] = {}
-        for sym in (symbols or ["BTC-USD", "ETH-USD"]):
+        for sym in symbols or ["BTC-USD", "ETH-USD"]:
             self.engines[sym] = MatchingEngine(sym)
 
         self.maker_fee_bps = maker_fee_bps
@@ -39,7 +40,9 @@ class ExchangeVenue:
             self.engines[symbol] = MatchingEngine(symbol)
         return self.engines[symbol]
 
-    def cancel_all_for_participant(self, owner_id: str, reason: str = "KILL_SWITCH") -> List[Order]:
+    def cancel_all_for_participant(
+        self, owner_id: str, reason: str = "KILL_SWITCH"
+    ) -> List[Order]:
         """Cancels all resting orders across all symbol engines when a kill switch or mass cancel trips."""
         canceled: List[Order] = []
         for engine in self.engines.values():
@@ -62,6 +65,7 @@ class ExchangeVenue:
         is_valid, reject_reason = self.risk_engine.validate_order(order)
         if not is_valid:
             from zerene.models import OrderStatus
+
             order.status = OrderStatus.REJECTED
             order.reject_reason = reject_reason
             return order, []
@@ -101,4 +105,5 @@ class ExchangeVenue:
         if not engine:
             return None
         from zerene.orderbook.snapshots import OrderBookSnapshot
+
         return OrderBookSnapshot.from_book(engine.order_book, timestamp, levels)

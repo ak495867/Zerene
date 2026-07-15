@@ -12,6 +12,7 @@ class Strategy(ABC):
     """
     Modular strategy plugin for ZERENE.
     """
+
     def __init__(self, owner_id: str, symbols: List[str]):
         self.owner_id = owner_id
         self.symbols = symbols
@@ -20,7 +21,9 @@ class Strategy(ABC):
         self.realized_pnl = 0.0
 
     @abstractmethod
-    def on_market_data(self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue) -> List[Order]:
+    def on_market_data(
+        self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue
+    ) -> List[Order]:
         """Called upon new market data update or book snapshot. Returns new orders to submit."""
         pass
 

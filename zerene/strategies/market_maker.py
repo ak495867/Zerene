@@ -17,6 +17,7 @@ class MarketMakerStrategy(Strategy):
     around the midpoint with reservation price skew:
     Reservation Price r(s, q) = s - q * gamma * sigma^2
     """
+
     def __init__(
         self,
         symbol: str,
@@ -24,8 +25,8 @@ class MarketMakerStrategy(Strategy):
         spread_bps: float = 10.0,
         quote_quantity: float = 1.0,
         max_inventory: float = 10.0,
-        gamma: float = 0.1,         # Risk aversion parameter
-        sigma: float = 0.02,        # Volatility estimate
+        gamma: float = 0.1,  # Risk aversion parameter
+        sigma: float = 0.02,  # Volatility estimate
     ):
         super().__init__(owner_id, [symbol])
         self.symbol = symbol
@@ -38,7 +39,9 @@ class MarketMakerStrategy(Strategy):
         self.last_ask_id: Optional[str] = None
         self._order_counter: int = 0
 
-    def on_market_data(self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue) -> List[Order]:
+    def on_market_data(
+        self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue
+    ) -> List[Order]:
         if symbol != self.symbol or book_snapshot.mid_price is None:
             return []
 
@@ -57,7 +60,7 @@ class MarketMakerStrategy(Strategy):
             self.last_ask_id = None
 
         # Calculate reservation price skew based on inventory
-        reservation_price = mid - (q * self.gamma * (self.sigma ** 2))
+        reservation_price = mid - (q * self.gamma * (self.sigma**2))
         half_spread = (mid * self.spread_bps / 10000.0) / 2.0
 
         bid_price = round(reservation_price - half_spread, 2)
@@ -108,10 +111,17 @@ class MarketMakerStrategy(Strategy):
             taker_side = trade.aggressor_side
             if trade.maker_owner_id == self.owner_id:
                 delta = trade.quantity if maker_side == Side.BUY else -trade.quantity
-                self.positions[self.symbol] = self.positions.get(self.symbol, 0.0) + delta
-            if trade.taker_owner_id == self.owner_id and trade.taker_owner_id != trade.maker_owner_id:
+                self.positions[self.symbol] = (
+                    self.positions.get(self.symbol, 0.0) + delta
+                )
+            if (
+                trade.taker_owner_id == self.owner_id
+                and trade.taker_owner_id != trade.maker_owner_id
+            ):
                 delta = trade.quantity if taker_side == Side.BUY else -trade.quantity
-                self.positions[self.symbol] = self.positions.get(self.symbol, 0.0) + delta
+                self.positions[self.symbol] = (
+                    self.positions.get(self.symbol, 0.0) + delta
+                )
         return []
 
     def on_timer(self, timestamp: float, exchange: ExchangeVenue) -> List[Order]:

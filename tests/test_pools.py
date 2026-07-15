@@ -13,8 +13,13 @@ def test_order_pool_acquire_and_release():
 
     # Acquire an order from pool
     o1 = pool.acquire(
-        order_id="TEST-1", client_order_id="C-1", symbol="BTC-USD", side=Side.BUY,
-        order_type=OrderType.LIMIT, quantity=10.0, price=50000.0
+        order_id="TEST-1",
+        client_order_id="C-1",
+        symbol="BTC-USD",
+        side=Side.BUY,
+        order_type=OrderType.LIMIT,
+        quantity=10.0,
+        price=50000.0,
     )
     assert len(pool.pool) == 4
     assert o1.order_id == "TEST-1"
@@ -28,8 +33,12 @@ def test_order_pool_acquire_and_release():
 
     # Re-acquire: should reset fields clean
     o2 = pool.acquire(
-        order_id="TEST-2", client_order_id="C-2", symbol="ETH-USD", side=Side.SELL,
-        order_type=OrderType.MARKET, quantity=5.0
+        order_id="TEST-2",
+        client_order_id="C-2",
+        symbol="ETH-USD",
+        side=Side.SELL,
+        order_type=OrderType.MARKET,
+        quantity=5.0,
     )
     assert o2.order_id == "TEST-2"
     assert o2.symbol == "ETH-USD"
@@ -39,7 +48,12 @@ def test_order_pool_acquire_and_release():
 
 def test_event_pool_lifecycle():
     epool = EventPool(initial_capacity=2)
-    ev = epool.acquire(event_id="E1", event_type=EventType.ORDER_SUBMIT, timestamp=1.0, symbol="BTC-USD")
+    ev = epool.acquire(
+        event_id="E1",
+        event_type=EventType.ORDER_SUBMIT,
+        timestamp=1.0,
+        symbol="BTC-USD",
+    )
     assert ev.event_id == "E1"
     assert ev.timestamp == 1.0
 
@@ -49,6 +63,7 @@ def test_event_pool_lifecycle():
 
 def test_trade_pool_lifecycle():
     from zerene.pools import TradePool
+
     tpool = TradePool(initial_capacity=3)
     t = tpool.acquire(
         trade_id="TRD-99",
@@ -76,6 +91,7 @@ def test_trade_pool_lifecycle():
 def test_order_node_pool_lifecycle():
     from zerene.pools import OrderNodePool
     from zerene.models import Order
+
     npool = OrderNodePool(initial_capacity=5)
     o = Order("TEST-N", "C-N", "BTC-USD", Side.BUY, OrderType.LIMIT, 10.0, price=100.0)
     node = npool.acquire(o)

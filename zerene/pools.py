@@ -5,7 +5,16 @@ Eliminates Python garbage collection (`gc`) pauses during high-throughput multi-
 
 from collections import deque
 from typing import Optional, List
-from zerene.models import Order, Trade, OrderEvent, Side, OrderType, OrderStatus, TimeInForce, EventType
+from zerene.models import (
+    Order,
+    Trade,
+    OrderEvent,
+    Side,
+    OrderType,
+    OrderStatus,
+    TimeInForce,
+    EventType,
+)
 from zerene.orderbook.level import Node
 
 
@@ -15,6 +24,7 @@ class OrderPool:
     When an order is canceled or completely filled and cleaned up, it can be returned to the pool
     to be reset and re-issued instead of allocating heap memory.
     """
+
     def __init__(self, initial_capacity: int = 50_000):
         self.pool: deque[Order] = deque()
         self._preallocate(initial_capacity)
@@ -53,6 +63,7 @@ class OrderPool:
             self._preallocate(1024)
 
         from zerene.models import get_next_internal_id
+
         order = self.pool.popleft()
         order._in_pool = False
         order.internal_id = get_next_internal_id()
@@ -64,7 +75,9 @@ class OrderPool:
         order.quantity = quantity
         order.price = price
         order.filled_quantity = 0.0
-        order.display_quantity = display_quantity if display_quantity is not None else quantity
+        order.display_quantity = (
+            display_quantity if display_quantity is not None else quantity
+        )
         order.hidden_quantity = hidden_quantity
         order.stop_price = stop_price
         order.time_in_force = time_in_force
@@ -105,6 +118,7 @@ class EventPool:
     """
     Object recycler for OrderEvent envelopes inside the latency gateways.
     """
+
     def __init__(self, initial_capacity: int = 50_000):
         self.pool: deque[OrderEvent] = deque()
         self._preallocate(initial_capacity)
@@ -134,6 +148,7 @@ class EventPool:
             self._preallocate(1024)
 
         from zerene.models import get_next_internal_id
+
         ev = self.pool.popleft()
         ev._in_pool = False
         ev.sequence_number = get_next_internal_id()
@@ -165,6 +180,7 @@ class TradePool:
     """
     Object recycler for Trade instances to eliminate allocation/GC overhead during high-throughput matching.
     """
+
     def __init__(self, initial_capacity: int = 50_000):
         self.pool: deque[Trade] = deque()
         self._preallocate(initial_capacity)
@@ -203,6 +219,7 @@ class TradePool:
             self._preallocate(1024)
 
         from zerene.models import get_next_internal_id
+
         trade = self.pool.popleft()
         trade._in_pool = False
         trade.internal_id = get_next_internal_id()
@@ -236,6 +253,7 @@ class OrderNodePool:
     Object recycler for Node (intrusive doubly-linked list wrappers) inside PriceLevel.
     Eliminates Node wrapper allocations on the heap every time an order is inserted or replaced.
     """
+
     def __init__(self, initial_capacity: int = 100_000):
         self.pool: deque[Node] = deque()
         self._preallocate(initial_capacity)

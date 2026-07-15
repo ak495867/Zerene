@@ -10,6 +10,7 @@ from typing import Optional
 
 class LatencyModel(ABC):
     """Abstract base class for multi-hop latency distribution models."""
+
     @abstractmethod
     def sample(self) -> float:
         """Returns sampled latency in seconds."""
@@ -25,6 +26,7 @@ class DeterministicLatency(LatencyModel):
     """
     Fixed deterministic latency profile across all hops.
     """
+
     def __init__(self, delay_seconds: float = 0.001, packet_drop_rate: float = 0.0):
         self.delay = max(0.0, delay_seconds)
         self.drop_rate = max(0.0, min(1.0, packet_drop_rate))
@@ -42,6 +44,7 @@ class StochasticLatency(LatencyModel):
     """
     Stochastic institutional latency profile (Normal, Exponential, Lognormal, Pareto).
     """
+
     def __init__(
         self,
         distribution: str = "normal",
@@ -60,12 +63,14 @@ class StochasticLatency(LatencyModel):
         if self.distribution == "normal":
             val = random.gauss(self.mean, self.std)
         elif self.distribution == "exponential":
-            val = self.min_latency + random.expovariate(1.0 / max(1e-9, self.mean - self.min_latency))
+            val = self.min_latency + random.expovariate(
+                1.0 / max(1e-9, self.mean - self.min_latency)
+            )
         elif self.distribution == "lognormal":
             # Convert mean and std to lognormal mu and sigma
-            variance = self.std ** 2
+            variance = self.std**2
             mean = max(1e-9, self.mean)
-            sigma2 = math.log(1.0 + (variance / (mean ** 2)))
+            sigma2 = math.log(1.0 + (variance / (mean**2)))
             mu = math.log(mean) - 0.5 * sigma2
             val = random.lognormvariate(mu, math.sqrt(sigma2))
         elif self.distribution == "pareto":

@@ -15,8 +15,9 @@ from zerene.pools import GLOBAL_ORDER_POOL
 @dataclass
 class VenueFeeSchedule:
     """Venue fee structure expressed in basis points (1 bps = 0.0001)."""
-    maker_fee_bps: float = 0.0   # Negative value indicates maker rebate (e.g. -0.5 bps)
-    taker_fee_bps: float = 2.0   # Taker execution fee
+
+    maker_fee_bps: float = 0.0  # Negative value indicates maker rebate (e.g. -0.5 bps)
+    taker_fee_bps: float = 2.0  # Taker execution fee
 
 
 class SmartOrderRouter:
@@ -28,12 +29,21 @@ class SmartOrderRouter:
     - Fee/rebate optimization (routing passive liquidity to maker rebate venues)
     - Effective execution price taking fee impact and adverse selection into account
     """
-    def __init__(self, venues: Dict[str, MatchingEngine], fee_schedules: Optional[Dict[str, VenueFeeSchedule]] = None):
+
+    def __init__(
+        self,
+        venues: Dict[str, MatchingEngine],
+        fee_schedules: Optional[Dict[str, VenueFeeSchedule]] = None,
+    ):
         self.venues = venues  # venue_id -> MatchingEngine
-        self.fee_schedules = fee_schedules or {vid: VenueFeeSchedule() for vid in venues}
+        self.fee_schedules = fee_schedules or {
+            vid: VenueFeeSchedule() for vid in venues
+        }
         self.latest_snapshots: Dict[str, OrderBookSnapshot] = {}
 
-    def _acquire_child_order(self, parent: Order, venue_id: str, quantity: float) -> Order:
+    def _acquire_child_order(
+        self, parent: Order, venue_id: str, quantity: float
+    ) -> Order:
         return GLOBAL_ORDER_POOL.acquire(
             order_id=f"{parent.order_id}-{venue_id[:3]}",
             client_order_id=f"{parent.client_order_id}-{venue_id[:3]}",
@@ -79,14 +89,22 @@ class SmartOrderRouter:
                 resolved_snapshots[vid] = self.latest_snapshots[vid]
             else:
                 # Generate snapshot across wire boundary to enforce immutability
-                resolved_snapshots[vid] = OrderBookSnapshot.from_book(engine.order_book, order.timestamp, max_depth_levels)
+                resolved_snapshots[vid] = OrderBookSnapshot.from_book(
+                    engine.order_book, order.timestamp, max_depth_levels
+                )
 
-        is_passive = (order.order_type == OrderType.POST_ONLY or urgency <= 0.3) and order.order_type != OrderType.MARKET
+        is_passive = (
+            order.order_type == OrderType.POST_ONLY or urgency <= 0.3
+        ) and order.order_type != OrderType.MARKET
 
         if is_passive:
-            return self._route_passive_rebate_optimized(order, max_depth_levels, resolved_snapshots)
+            return self._route_passive_rebate_optimized(
+                order, max_depth_levels, resolved_snapshots
+            )
         else:
-            return self._route_aggressive_level_ii_sweep(order, max_depth_levels, resolved_snapshots)
+            return self._route_aggressive_level_ii_sweep(
+                order, max_depth_levels, resolved_snapshots
+            )
 
     def _route_passive_rebate_optimized(
         self,
@@ -109,7 +127,9 @@ class SmartOrderRouter:
             # Check queue volume right where we would join from snapshot
             best_bid = snap.bids[0][0] if snap.bids else None
             best_ask = snap.asks[0][0] if snap.asks else None
-            target_price = order.price or (best_bid if order.side == Side.BUY else best_ask)
+            target_price = order.price or (
+                best_bid if order.side == Side.BUY else best_ask
+            )
             queue_vol = 0.0
             if target_price is not None:
                 depth_list = snap.bids if order.side == Side.BUY else snap.asks
@@ -135,7 +155,9 @@ class SmartOrderRouter:
             if max_score == best_score:
                 weights = [1.0 for _ in venue_scores]
             else:
-                weights = [max(0.1, max_score - score + 1.0) for _, score in venue_scores]
+                weights = [
+                    max(0.1, max_score - score + 1.0) for _, score in venue_scores
+                ]
             total_w = sum(weights)
 
             allocated_sum = 0.0
@@ -152,10 +174,14 @@ class SmartOrderRouter:
 
             for vid, alloc in allocations:
                 if alloc > 1e-9:
-                    child_orders.append((vid, self._acquire_child_order(order, vid, alloc)))
+                    child_orders.append(
+                        (vid, self._acquire_child_order(order, vid, alloc))
+                    )
         else:
             best_vid = venue_scores[0][0]
-            child_orders.append((best_vid, self._acquire_child_order(order, best_vid, remaining_qty)))
+            child_orders.append(
+                (best_vid, self._acquire_child_order(order, best_vid, remaining_qty))
+            )
 
         return child_orders
 
@@ -170,7 +196,9 @@ class SmartOrderRouter:
         Calculates effective price = price * (1 + side * taker_fee_bps / 10000).
         Consumes cheapest effective liquidity tranches across all venues up to target quantity.
         """
-        all_tranches: List[Tuple[str, float, float, float]] = []  # (venue_id, raw_price, effective_price, volume)
+        all_tranches: List[Tuple[str, float, float, float]] = (
+            []
+        )  # (venue_id, raw_price, effective_price, volume)
 
         for venue_id in self.venues.keys():
             snap = snapshots.get(venue_id)
@@ -183,7 +211,9 @@ class SmartOrderRouter:
 
             for raw_price, vol in depth_list:
                 if order.price is not None:
-                    if (order.side == Side.BUY and raw_price > order.price) or (order.side == Side.SELL and raw_price < order.price):
+                    if (order.side == Side.BUY and raw_price > order.price) or (
+                        order.side == Side.SELL and raw_price < order.price
+                    ):
                         continue
                 # Calculate effective cost/proceeds per share including venue taker fee
                 if order.side == Side.BUY:
@@ -205,7 +235,9 @@ class SmartOrderRouter:
             if remaining_qty <= 1e-9:
                 break
             take_vol = min(remaining_qty, vol)
-            venue_allocations[venue_id] = venue_allocations.get(venue_id, 0.0) + take_vol
+            venue_allocations[venue_id] = (
+                venue_allocations.get(venue_id, 0.0) + take_vol
+            )
             remaining_qty -= take_vol
 
         # If still unallocated residual (e.g. order larger than total Level II depth across all venues),
@@ -220,15 +252,21 @@ class SmartOrderRouter:
                 n_venues = max(1, len(self.venues))
                 even_split = round(remaining_qty / n_venues, 4)
                 for vid in self.venues.keys():
-                    venue_allocations[vid] = venue_allocations.get(vid, 0.0) + even_split
+                    venue_allocations[vid] = (
+                        venue_allocations.get(vid, 0.0) + even_split
+                    )
 
         child_orders: List[Tuple[str, Order]] = []
         for venue_id, alloc in venue_allocations.items():
             if alloc > 1e-9:
-                child_orders.append((venue_id, self._acquire_child_order(order, venue_id, alloc)))
+                child_orders.append(
+                    (venue_id, self._acquire_child_order(order, venue_id, alloc))
+                )
 
         return child_orders
 
-    def route_limit_order(self, order: Order, snapshots: Optional[Dict[str, OrderBookSnapshot]] = None) -> List[Tuple[str, Order]]:
+    def route_limit_order(
+        self, order: Order, snapshots: Optional[Dict[str, OrderBookSnapshot]] = None
+    ) -> List[Tuple[str, Order]]:
         """Backward compatible wrapper around route_order."""
         return self.route_order(order, urgency=0.5, snapshots=snapshots)

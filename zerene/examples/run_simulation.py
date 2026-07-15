@@ -17,7 +17,9 @@ def run_basic_simulation(steps: int = 1000, symbols: list = None) -> str:
 
     # Attach Market Maker and Momentum strategies
     for sym in symbols:
-        mm = MarketMakerStrategy(symbol=sym, owner_id=f"MM_{sym}", spread_bps=12.0, quote_quantity=2.0)
+        mm = MarketMakerStrategy(
+            symbol=sym, owner_id=f"MM_{sym}", spread_bps=12.0, quote_quantity=2.0
+        )
         mom = MomentumStrategy(symbol=sym, owner_id=f"MOM_{sym}", trade_quantity=1.5)
         simulator.add_strategy(mm)
         simulator.add_strategy(mom)

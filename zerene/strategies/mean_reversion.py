@@ -16,6 +16,7 @@ class MeanReversionStrategy(Strategy):
     Mean reversion strategy tracking rolling mean and standard deviation z-score.
     Enters opposite to extreme deviations and exits when mean reverting.
     """
+
     def __init__(
         self,
         symbol: str,
@@ -34,7 +35,9 @@ class MeanReversionStrategy(Strategy):
         self.price_history: List[float] = []
         self._order_counter: int = 0
 
-    def on_market_data(self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue) -> List[Order]:
+    def on_market_data(
+        self, symbol: str, timestamp: float, book_snapshot: Any, exchange: ExchangeVenue
+    ) -> List[Order]:
         if symbol != self.symbol or book_snapshot.mid_price is None:
             return []
 
@@ -61,45 +64,51 @@ class MeanReversionStrategy(Strategy):
         if z_score > self.z_entry and pos >= 0:
             self._order_counter += 1
             order_id = f"MR-SELL-{self.owner_id}-{self._order_counter}"
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=order_id,
-                client_order_id=f"C-{order_id}",
-                symbol=self.symbol,
-                side=Side.SELL,
-                order_type=OrderType.MARKET,
-                quantity=self.trade_quantity + abs(pos),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=order_id,
+                    client_order_id=f"C-{order_id}",
+                    symbol=self.symbol,
+                    side=Side.SELL,
+                    order_type=OrderType.MARKET,
+                    quantity=self.trade_quantity + abs(pos),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
         # Low price deviation -> long
         elif z_score < -self.z_entry and pos <= 0:
             self._order_counter += 1
             order_id = f"MR-BUY-{self.owner_id}-{self._order_counter}"
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=order_id,
-                client_order_id=f"C-{order_id}",
-                symbol=self.symbol,
-                side=Side.BUY,
-                order_type=OrderType.MARKET,
-                quantity=self.trade_quantity + abs(pos),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=order_id,
+                    client_order_id=f"C-{order_id}",
+                    symbol=self.symbol,
+                    side=Side.BUY,
+                    order_type=OrderType.MARKET,
+                    quantity=self.trade_quantity + abs(pos),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
         # Reversion to mean -> close position
         elif abs(z_score) < self.z_exit and abs(pos) > 1e-9:
             side = Side.SELL if pos > 0 else Side.BUY
             self._order_counter += 1
             order_id = f"MR-CLOSE-{self.owner_id}-{self._order_counter}"
-            orders.append(GLOBAL_ORDER_POOL.acquire(
-                order_id=order_id,
-                client_order_id=f"C-{order_id}",
-                symbol=self.symbol,
-                side=side,
-                order_type=OrderType.MARKET,
-                quantity=abs(pos),
-                timestamp=timestamp,
-                owner_id=self.owner_id,
-            ))
+            orders.append(
+                GLOBAL_ORDER_POOL.acquire(
+                    order_id=order_id,
+                    client_order_id=f"C-{order_id}",
+                    symbol=self.symbol,
+                    side=side,
+                    order_type=OrderType.MARKET,
+                    quantity=abs(pos),
+                    timestamp=timestamp,
+                    owner_id=self.owner_id,
+                )
+            )
 
         return orders
 
@@ -109,10 +118,17 @@ class MeanReversionStrategy(Strategy):
             taker_side = trade.aggressor_side
             if trade.maker_owner_id == self.owner_id:
                 delta = trade.quantity if maker_side == Side.BUY else -trade.quantity
-                self.positions[self.symbol] = self.positions.get(self.symbol, 0.0) + delta
-            if trade.taker_owner_id == self.owner_id and trade.taker_owner_id != trade.maker_owner_id:
+                self.positions[self.symbol] = (
+                    self.positions.get(self.symbol, 0.0) + delta
+                )
+            if (
+                trade.taker_owner_id == self.owner_id
+                and trade.taker_owner_id != trade.maker_owner_id
+            ):
                 delta = trade.quantity if taker_side == Side.BUY else -trade.quantity
-                self.positions[self.symbol] = self.positions.get(self.symbol, 0.0) + delta
+                self.positions[self.symbol] = (
+                    self.positions.get(self.symbol, 0.0) + delta
+                )
         return []
 
     def on_timer(self, timestamp: float, exchange: ExchangeVenue) -> List[Order]:

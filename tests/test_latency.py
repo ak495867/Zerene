@@ -13,7 +13,9 @@ def test_deterministic_and_stochastic_latency():
     assert det.sample() == 0.005
     assert det.should_drop() is False
 
-    stoch = StochasticLatency(distribution="normal", mean_seconds=0.003, std_seconds=0.0001)
+    stoch = StochasticLatency(
+        distribution="normal", mean_seconds=0.003, std_seconds=0.0001
+    )
     sample = stoch.sample()
     assert sample >= stoch.min_latency
 
@@ -25,8 +27,18 @@ def test_latency_gateway_priority_queue():
         engine_model=DeterministicLatency(0.001),
     )
 
-    ev1 = OrderEvent(event_id="EV1", event_type=EventType.ORDER_SUBMIT, timestamp=1.0, symbol="BTC-USD")
-    ev2 = OrderEvent(event_id="EV2", event_type=EventType.ORDER_SUBMIT, timestamp=0.5, symbol="BTC-USD")
+    ev1 = OrderEvent(
+        event_id="EV1",
+        event_type=EventType.ORDER_SUBMIT,
+        timestamp=1.0,
+        symbol="BTC-USD",
+    )
+    ev2 = OrderEvent(
+        event_id="EV2",
+        event_type=EventType.ORDER_SUBMIT,
+        timestamp=0.5,
+        symbol="BTC-USD",
+    )
 
     gw.submit_inbound(ev1)
     gw.submit_inbound(ev2)

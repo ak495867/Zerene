@@ -16,6 +16,7 @@ class TickDict(dict):
     Dictionary subclass that automatically normalizes floating point price keys to fixed integer ticks (`TICK_SCALE=10000`)
     while preserving standard float lookup ergonomics for introspection, reporting, and backwards compatibility.
     """
+
     def _normalize_key(self, key):
         if isinstance(key, float):
             return int(round(key * 10000))
@@ -50,12 +51,17 @@ class OrderBook:
     fast order access, queue position indexing, and atomic order modification (`FIX 35=G`).
     Uses integer ticks (`price * 10000`) for zero floating-point drift.
     """
+
     def __init__(self, symbol: str):
         self.symbol = symbol
         self.bids: TickDict[int, PriceLevel] = TickDict()
         self.asks: TickDict[int, PriceLevel] = TickDict()
-        self.sorted_bids: SortedList = SortedList(key=lambda x: -x)  # Sorted descending via B-Tree (integer ticks)
-        self.sorted_asks: SortedList = SortedList()                  # Sorted ascending via B-Tree (integer ticks)
+        self.sorted_bids: SortedList = SortedList(
+            key=lambda x: -x
+        )  # Sorted descending via B-Tree (integer ticks)
+        self.sorted_asks: SortedList = (
+            SortedList()
+        )  # Sorted ascending via B-Tree (integer ticks)
         self.order_map: Dict[str, Order] = {}
         self._order_map_int: Dict[int, Order] = {}
 
@@ -65,7 +71,9 @@ class OrderBook:
             return
         price = round(order.price, 8) if isinstance(order.price, float) else order.price
         order.price = price
-        price_ticks = int(round(price * 10000)) if isinstance(price, float) else int(price)
+        price_ticks = (
+            int(round(price * 10000)) if isinstance(price, float) else int(price)
+        )
 
         if order.side == Side.BUY:
             if price_ticks not in self.bids:
@@ -90,7 +98,11 @@ class OrderBook:
         if order.price is None:
             return order
 
-        price_ticks = int(round(order.price * 10000)) if isinstance(order.price, float) else int(order.price)
+        price_ticks = (
+            int(round(order.price * 10000))
+            if isinstance(order.price, float)
+            else int(order.price)
+        )
         if order.side == Side.BUY and price_ticks in self.bids:
             level = self.bids[price_ticks]
             level.remove(order)
@@ -115,7 +127,11 @@ class OrderBook:
         if order.price is None:
             return order
 
-        price_ticks = int(round(order.price * 10000)) if isinstance(order.price, float) else int(order.price)
+        price_ticks = (
+            int(round(order.price * 10000))
+            if isinstance(order.price, float)
+            else int(order.price)
+        )
         if order.side == Side.BUY and price_ticks in self.bids:
             level = self.bids[price_ticks]
             level.remove(order)
@@ -174,7 +190,9 @@ class OrderBook:
             if order.display_quantity is not None:
                 order.display_quantity = min(order.display_quantity, new_quantity)
             if order.order_type == OrderType.ICEBERG:
-                order.hidden_quantity = max(0.0, order.quantity - (order.display_quantity or 0.0))
+                order.hidden_quantity = max(
+                    0.0, order.quantity - (order.display_quantity or 0.0)
+                )
             elif order.order_type == OrderType.HIDDEN:
                 order.hidden_quantity = order.quantity
             order.timestamp = timestamp
@@ -192,12 +210,20 @@ class OrderBook:
                 deduct_display = 0.0
             order.status = OrderStatus.REPLACED
 
-            level = self.bids[current_price] if order.side == Side.BUY else self.asks[current_price]
+            level = (
+                self.bids[current_price]
+                if order.side == Side.BUY
+                else self.asks[current_price]
+            )
             level.total_volume = max(0.0, level.total_volume - deduct_display)
             if order.order_type == OrderType.ICEBERG:
                 if order.display_quantity is not None:
-                    order.hidden_quantity = max(0.0, order.quantity - order.display_quantity)
-                level.hidden_volume = max(0.0, level.hidden_volume - (delta_qty - deduct_display))
+                    order.hidden_quantity = max(
+                        0.0, order.quantity - order.display_quantity
+                    )
+                level.hidden_volume = max(
+                    0.0, level.hidden_volume - (delta_qty - deduct_display)
+                )
             elif order.order_type == OrderType.HIDDEN:
                 order.hidden_quantity = order.quantity
                 level.hidden_volume = max(0.0, level.hidden_volume - delta_qty)
@@ -206,7 +232,15 @@ class OrderBook:
 
     def best_bid(self) -> Optional[float]:
         """Returns the highest resting buy price (`float` for external consumption)."""
-        return (self.sorted_bids[0] / 10000.0 if isinstance(self.sorted_bids[0], int) else self.sorted_bids[0]) if self.sorted_bids else None
+        return (
+            (
+                self.sorted_bids[0] / 10000.0
+                if isinstance(self.sorted_bids[0], int)
+                else self.sorted_bids[0]
+            )
+            if self.sorted_bids
+            else None
+        )
 
     def best_bid_ticks(self) -> Optional[int]:
         """Returns the highest resting buy price in exact integer ticks for internal engine matching."""
@@ -214,7 +248,15 @@ class OrderBook:
 
     def best_ask(self) -> Optional[float]:
         """Returns the lowest resting sell price (`float` for external consumption)."""
-        return (self.sorted_asks[0] / 10000.0 if isinstance(self.sorted_asks[0], int) else self.sorted_asks[0]) if self.sorted_asks else None
+        return (
+            (
+                self.sorted_asks[0] / 10000.0
+                if isinstance(self.sorted_asks[0], int)
+                else self.sorted_asks[0]
+            )
+            if self.sorted_asks
+            else None
+        )
 
     def best_ask_ticks(self) -> Optional[int]:
         """Returns the lowest resting sell price in exact integer ticks for internal engine matching."""
@@ -236,7 +278,9 @@ class OrderBook:
             return ba - bb
         return None
 
-    def get_depth(self, levels: int = 10) -> Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]:
+    def get_depth(
+        self, levels: int = 10
+    ) -> Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]:
         """
         Returns (bids_depth, asks_depth) up to `levels`.
         Each entry is (price, visible_volume). Hidden volume is excluded.
@@ -290,17 +334,27 @@ class OrderBook:
             return None
 
         price = order.price
-        price_ticks = int(round(price * 10000)) if isinstance(price, float) else int(price)
+        price_ticks = (
+            int(round(price * 10000)) if isinstance(price, float) else int(price)
+        )
         if order.side == Side.BUY:
             if price_ticks not in self.bids:
                 return None
             level = self.bids[price_ticks]
-            rank = self.sorted_bids.index(price_ticks) if price_ticks in self.sorted_bids else None
+            rank = (
+                self.sorted_bids.index(price_ticks)
+                if price_ticks in self.sorted_bids
+                else None
+            )
         else:
             if price_ticks not in self.asks:
                 return None
             level = self.asks[price_ticks]
-            rank = self.sorted_asks.index(price_ticks) if price_ticks in self.sorted_asks else None
+            rank = (
+                self.sorted_asks.index(price_ticks)
+                if price_ticks in self.sorted_asks
+                else None
+            )
 
         if rank is None:
             return None
@@ -319,7 +373,9 @@ class OrderBook:
 
     def clean_empty_level(self, price: float, side: Side) -> None:
         """Cleans up empty price level if needed."""
-        price_ticks = int(round(price * 10000)) if isinstance(price, float) else int(price)
+        price_ticks = (
+            int(round(price * 10000)) if isinstance(price, float) else int(price)
+        )
         if side == Side.BUY and price_ticks in self.bids:
             if self.bids[price_ticks].is_empty():
                 del self.bids[price_ticks]

@@ -4,12 +4,17 @@ Structured Analytics & Microstructure Quality Report container.
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
-from zerene.analytics.metrics import calculate_sharpe_ratio, calculate_max_drawdown, calculate_profit_factor
+from zerene.analytics.metrics import (
+    calculate_sharpe_ratio,
+    calculate_max_drawdown,
+    calculate_profit_factor,
+)
 
 
 @dataclass
 class AnalyticsReport:
     """Comprehensive performance and microstructure quality report generated post-simulation."""
+
     total_steps: int
     total_trades: int
     total_volume_traded: float
@@ -48,7 +53,7 @@ class AnalyticsReport:
             market_quality_metrics={
                 "poisson_rate": sim.poisson_rate,
                 "regime": sim.regime.value,
-            }
+            },
         )
 
     def summary(self) -> str:
@@ -65,7 +70,9 @@ class AnalyticsReport:
         ]
         for pid, m in self.participant_metrics.items():
             lines.append(f"  [{pid}]")
-            lines.append(f"    Realized PnL:   ${m['realized_pnl']:,.2f} (Equity: ${m['equity']:,.2f})")
+            lines.append(
+                f"    Realized PnL:   ${m['realized_pnl']:,.2f} (Equity: ${m['equity']:,.2f})"
+            )
             lines.append(f"    Max Drawdown:   {m['max_drawdown']*100:.2f}%")
             lines.append(f"    Sharpe Ratio:   {m['sharpe_ratio']:.2f}")
             if m["kill_switch_active"]:

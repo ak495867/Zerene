@@ -9,7 +9,9 @@ from zerene.models import Side, OrderType
 
 
 def test_hawkes_and_ofi_conditioning():
-    gen = SyntheticFlowGenerator(symbol="SOL-USD", base_rate_buy=10.0, base_rate_sell=10.0)
+    gen = SyntheticFlowGenerator(
+        symbol="SOL-USD", base_rate_buy=10.0, base_rate_sell=10.0
+    )
     assert gen.intensity_buy == 10.0 and gen.intensity_sell == 10.0
 
     # Inject strong positive OFI (heavy buying imbalance)
@@ -22,8 +24,21 @@ def test_hawkes_and_ofi_conditioning():
 
 def test_tick_loader_from_dicts():
     records = [
-        {"timestamp": 0.1, "side": "BUY", "order_type": "LIMIT", "price": 100.0, "quantity": 2.5, "order_id": "D1"},
-        {"timestamp": 0.2, "side": "SELL", "order_type": "MARKET", "quantity": 1.0, "order_id": "D2"},
+        {
+            "timestamp": 0.1,
+            "side": "BUY",
+            "order_type": "LIMIT",
+            "price": 100.0,
+            "quantity": 2.5,
+            "order_id": "D1",
+        },
+        {
+            "timestamp": 0.2,
+            "side": "SELL",
+            "order_type": "MARKET",
+            "quantity": 1.0,
+            "order_id": "D2",
+        },
     ]
     orders = list(TickDataLoader.from_dicts(records, symbol="BTC-USD"))
     assert len(orders) == 2

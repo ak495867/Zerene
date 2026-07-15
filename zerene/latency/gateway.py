@@ -14,6 +14,7 @@ class LatencyGateway:
     Routes events between clients and matching engines across configured latency hops.
     Uses priority min-heap sorted by arrival_time (`due_time`, `seq_num`) to preserve strict temporal causality and deterministic tie-breaking.
     """
+
     def __init__(
         self,
         net_in_model: Optional[LatencyModel] = None,
@@ -26,8 +27,12 @@ class LatencyGateway:
         self.engine = engine_model or DeterministicLatency(0.0001)
         self.net_out = net_out_model or DeterministicLatency(0.001)
 
-        self.inbound_queue: List[Tuple[float, int, OrderEvent]] = []   # Events destined for Matching Engine
-        self.outbound_queue: List[Tuple[float, int, OrderEvent]] = []  # Events destined for Clients
+        self.inbound_queue: List[Tuple[float, int, OrderEvent]] = (
+            []
+        )  # Events destined for Matching Engine
+        self.outbound_queue: List[Tuple[float, int, OrderEvent]] = (
+            []
+        )  # Events destined for Clients
         self._seq_counter: int = 0
 
     def submit_inbound(self, event: OrderEvent) -> bool:
