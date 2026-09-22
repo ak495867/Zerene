@@ -57,6 +57,14 @@ class ExchangeVenue:
         Submits an order through pre-trade risk validation and into the target matching engine.
         Also calculates exchange fee rebates and charges.
         """
+        from zerene.models import OrderStatus
+
+        validation_error = order.validate()
+        if validation_error is not None:
+            order.status = OrderStatus.REJECTED
+            order.reject_reason = validation_error
+            return order, []
+
         engine = self.engines.get(order.symbol)
         if not engine:
             engine = self.add_symbol(order.symbol)
@@ -64,8 +72,6 @@ class ExchangeVenue:
         # Pre-trade risk validation
         is_valid, reject_reason = self.risk_engine.validate_order(order)
         if not is_valid:
-            from zerene.models import OrderStatus
-
             order.status = OrderStatus.REJECTED
             order.reject_reason = reject_reason
             return order, []

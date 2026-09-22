@@ -192,6 +192,21 @@ print(f"Total Steps: {report.total_steps} | Total Trades: {report.total_trades}"
 print(f"Total Volume: {report.total_volume:.2f} | Execution Quality: {report.summary()}")
 ```
 
+### Order-entry validation
+
+Orders submitted through `ExchangeVenue.submit_order()` are validated before risk checks
+or matching. Invalid identifiers, non-positive or non-finite quantities, invalid prices,
+and invalid stop prices are rejected with a stable `Order.reject_reason`; no order is
+inserted into the book. Internal pooled placeholder objects remain available for the
+benchmark hot path because validation is deliberately enforced at the public venue boundary.
+
+### Recommended next improvements
+
+For production research workloads, the next high-value improvements are deterministic
+event-log replay, configurable tick and lot-size rules per symbol, property-based testing
+of matching invariants, and benchmark baselines tracked across commits. These build on the
+current FIFO engine without changing its public order lifecycle.
+
 ---
 
 ## Deep-Dive Documentation 📚

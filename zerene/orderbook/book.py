@@ -285,6 +285,9 @@ class OrderBook:
         Returns (bids_depth, asks_depth) up to `levels`.
         Each entry is (price, visible_volume). Hidden volume is excluded.
         """
+        if not isinstance(levels, int) or isinstance(levels, bool) or levels < 0:
+            raise ValueError("levels must be a non-negative integer")
+
         b_depth = []
         for p in self.sorted_bids[:levels]:
             lvl = self.bids.get(p)

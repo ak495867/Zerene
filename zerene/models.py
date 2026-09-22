@@ -3,6 +3,7 @@ Core data models, enums, and event structures for ZERENE.
 Optimized with __slots__ and strict type definitions for institutional-grade performance.
 """
 
+import math
 from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
@@ -107,6 +108,24 @@ class Order:
                 self.display_quantity = self.quantity
             self.hidden_quantity = 0.0
             self.iceberg_slice = self.display_quantity
+
+    def validate(self) -> Optional[str]:
+        """Return a stable rejection reason for invalid external order input."""
+        if not self.order_id or not self.client_order_id or not self.symbol:
+            return "MISSING_ORDER_IDENTIFIERS"
+        if not isinstance(self.side, Side) or not isinstance(self.order_type, OrderType):
+            return "INVALID_ORDER_ENUM"
+        if not math.isfinite(self.quantity) or self.quantity <= 0:
+            return "INVALID_QUANTITY"
+        if not math.isfinite(self.filled_quantity) or not 0 <= self.filled_quantity <= self.quantity:
+            return "INVALID_FILLED_QUANTITY"
+        if self.price is not None and (not math.isfinite(self.price) or self.price < 0):
+            return "INVALID_PRICE"
+        if self.stop_price is not None and (
+            not math.isfinite(self.stop_price) or self.stop_price <= 0
+        ):
+            return "INVALID_STOP_PRICE"
+        return None
 
     @property
     def remaining_quantity(self) -> float:
