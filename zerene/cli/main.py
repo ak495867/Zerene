@@ -98,7 +98,9 @@ def main(args: Optional[List[str]] = None) -> int:
                 base_symbol=parsed.symbol, num_shards=parsed.shards
             )
             results = sharded_runner.run(
-                total_orders=parsed.orders, workload=parsed.workload, verbose=verbose_flag
+                total_orders=parsed.orders,
+                workload=parsed.workload,
+                verbose=verbose_flag,
             )
         else:
             if verbose_flag:

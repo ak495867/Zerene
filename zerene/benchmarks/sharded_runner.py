@@ -27,7 +27,10 @@ class ShardedBenchmarkRunner:
         self.num_shards = num_shards
 
     def run(
-        self, total_orders: int = 100_000, workload: str = "realistic", verbose: bool = True
+        self,
+        total_orders: int = 100_000,
+        workload: str = "realistic",
+        verbose: bool = True,
     ) -> Dict[str, Any]:
         orders_per_shard = total_orders // self.num_shards
 
