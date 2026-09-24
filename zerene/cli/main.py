@@ -94,17 +94,19 @@ def main(args: Optional[List[str]] = None) -> int:
                 )
             from zerene.benchmarks.sharded_runner import ShardedBenchmarkRunner
 
-            runner = ShardedBenchmarkRunner(
+            sharded_runner = ShardedBenchmarkRunner(
                 base_symbol=parsed.symbol, num_shards=parsed.shards
             )
-            results = runner.run(total_orders=parsed.orders, workload=parsed.workload)
+            results = sharded_runner.run(
+                total_orders=parsed.orders, workload=parsed.workload
+            )
         else:
             if verbose_flag:
                 print(
                     f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol})...\n"
                 )
-            runner = BenchmarkRunner(parsed.symbol)
-            results = runner.run(
+            single_runner = BenchmarkRunner(parsed.symbol)
+            results = single_runner.run(
                 num_orders=parsed.orders, workload=parsed.workload, verbose=verbose_flag
             )
 

@@ -5,12 +5,15 @@ and atomic Cancel-Replace priority preservation rules (`FIX 35=G`).
 """
 
 from sortedcontainers import SortedList
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, TypeVar
 from zerene.models import Order, Side, OrderStatus, OrderType
 from zerene.orderbook.level import PriceLevel
 
+K = TypeVar("K")
+V = TypeVar("V")
 
-class TickDict(dict):
+
+class TickDict(Dict[K, V]):
     """
     Dictionary subclass that automatically normalizes floating point price keys to fixed integer ticks (`TICK_SCALE=10000`)
     while preserving standard float lookup ergonomics for introspection, reporting, and backwards compatibility.

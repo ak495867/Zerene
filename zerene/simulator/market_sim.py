@@ -129,10 +129,10 @@ class MarketSimulator:
 
             # Process due inbound events arriving from latency gateway
             due = self.exchange.latency_gateway.pop_due_inbound(self.current_time)
-            for ev in due:
-                if ev.order:
-                    self.exchange.submit_order(ev.order)
-                GLOBAL_EVENT_POOL.release(ev)
+            for inbound_ev in due:
+                if inbound_ev.order:
+                    self.exchange.submit_order(inbound_ev.order)
+                GLOBAL_EVENT_POOL.release(inbound_ev)
 
             # Notify strategies of periodic timer ticks and new snapshots
             for symbol in self.exchange.engines.keys():
@@ -147,34 +147,34 @@ class MarketSimulator:
                             )
                             for o in new_orders:
                                 o.timestamp = self.current_time
-                                ev = GLOBAL_EVENT_POOL.acquire(
+                                order_ev = GLOBAL_EVENT_POOL.acquire(
                                     event_id=f"EV-{o.order_id}",
                                     event_type=EventType.ORDER_SUBMIT,
                                     timestamp=self.current_time,
                                     symbol=o.symbol,
                                 )
-                                ev.order = o
-                                self.exchange.latency_gateway.submit_inbound(ev)
+                                order_ev.order = o
+                                self.exchange.latency_gateway.submit_inbound(order_ev)
 
             for strategy in self.strategies:
                 timer_orders = strategy.on_timer(self.current_time, self.exchange)
                 for o in timer_orders:
                     o.timestamp = self.current_time
-                    ev = GLOBAL_EVENT_POOL.acquire(
+                    timer_ev = GLOBAL_EVENT_POOL.acquire(
                         event_id=f"EV-{o.order_id}",
                         event_type=EventType.ORDER_SUBMIT,
                         timestamp=self.current_time,
                         symbol=o.symbol,
                     )
-                    ev.order = o
-                    self.exchange.latency_gateway.submit_inbound(ev)
+                    timer_ev.order = o
+                    self.exchange.latency_gateway.submit_inbound(timer_ev)
 
             # Pop any orders that completed latency transit right within this step interval
             due_post = self.exchange.latency_gateway.pop_due_inbound(self.current_time)
-            for ev in due_post:
-                if ev.order:
-                    self.exchange.submit_order(ev.order)
-                GLOBAL_EVENT_POOL.release(ev)
+            for post_ev in due_post:
+                if post_ev.order:
+                    self.exchange.submit_order(post_ev.order)
+                GLOBAL_EVENT_POOL.release(post_ev)
 
             # Check for circuit breaker trigger condition (extreme price deviation from reference baseline)
             for symbol, engine in self.exchange.engines.items():

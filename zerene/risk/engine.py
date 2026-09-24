@@ -286,7 +286,7 @@ class RiskEngine:
 
             # Update average price if increasing position or flipping
             if abs(new_qty) <= 1e-9:
-                state.positions._dirty = False
+                state._dirty = False
                 dict.__setitem__(state.positions, trade.symbol, 0.0)
                 dict.__setitem__(state.average_prices, trade.symbol, 0.0)
             elif (current_qty >= 0 and trade_delta > 0) or (
