@@ -28,7 +28,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
 
             sim = DashboardHandler.simulator_instance
             if not sim:
-                self.wfile.write(json.dumps({"error": "No simulator attached"}).encode())
+                self.wfile.write(
+                    json.dumps({"error": "No simulator attached"}).encode()
+                )
                 return
 
             engine = sim.exchange.engines.get("BTC-USD")

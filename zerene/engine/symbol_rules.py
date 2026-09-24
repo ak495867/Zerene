@@ -31,7 +31,10 @@ class SymbolSpecification:
         if order.quantity < self.lot_size:
             return False, f"QUANTITY_BELOW_LOT_SIZE: {order.quantity} < {self.lot_size}"
         if order.quantity > self.max_order_qty:
-            return False, f"QUANTITY_EXCEEDS_MAX_LIMIT: {order.quantity} > {self.max_order_qty}"
+            return (
+                False,
+                f"QUANTITY_EXCEEDS_MAX_LIMIT: {order.quantity} > {self.max_order_qty}",
+            )
 
         # Round quantity to step size
         steps = round(order.quantity / self.step_size)
@@ -51,6 +54,9 @@ class SymbolSpecification:
 
             notional = order.quantity * order.price
             if notional < self.min_notional:
-                return False, f"NOTIONAL_VALUE_BELOW_MINIMUM: ${notional:.2f} < ${self.min_notional:.2f}"
+                return (
+                    False,
+                    f"NOTIONAL_VALUE_BELOW_MINIMUM: ${notional:.2f} < ${self.min_notional:.2f}",
+                )
 
         return True, None

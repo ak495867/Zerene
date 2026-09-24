@@ -79,7 +79,9 @@ class PeggedOrderManager:
 
         for oid, order in list(self.pegged_orders.items()):
             new_p = self.calculate_pegged_price(order, bb, ba)
-            if new_p is not None and (order.price is None or abs(order.price - new_p) > 1e-6):
+            if new_p is not None and (
+                order.price is None or abs(order.price - new_p) > 1e-6
+            ):
                 repriced.append((order, new_p))
 
         return repriced

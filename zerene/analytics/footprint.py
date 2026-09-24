@@ -65,20 +65,31 @@ class FootprintBar:
         sorted_prices = sorted(self.price_level_volumes.keys())
         poc_idx = sorted_prices.index(poc)
 
-        accumulated = self.price_level_volumes[poc]["buy_vol"] + self.price_level_volumes[poc]["sell_vol"]
+        accumulated = (
+            self.price_level_volumes[poc]["buy_vol"]
+            + self.price_level_volumes[poc]["sell_vol"]
+        )
         low_idx = poc_idx
         high_idx = poc_idx
 
-        while accumulated < target_vol and (low_idx > 0 or high_idx < len(sorted_prices) - 1):
+        while accumulated < target_vol and (
+            low_idx > 0 or high_idx < len(sorted_prices) - 1
+        ):
             next_low_vol = 0.0
             if low_idx > 0:
                 p_low = sorted_prices[low_idx - 1]
-                next_low_vol = self.price_level_volumes[p_low]["buy_vol"] + self.price_level_volumes[p_low]["sell_vol"]
+                next_low_vol = (
+                    self.price_level_volumes[p_low]["buy_vol"]
+                    + self.price_level_volumes[p_low]["sell_vol"]
+                )
 
             next_high_vol = 0.0
             if high_idx < len(sorted_prices) - 1:
                 p_high = sorted_prices[high_idx + 1]
-                next_high_vol = self.price_level_volumes[p_high]["buy_vol"] + self.price_level_volumes[p_high]["sell_vol"]
+                next_high_vol = (
+                    self.price_level_volumes[p_high]["buy_vol"]
+                    + self.price_level_volumes[p_high]["sell_vol"]
+                )
 
             if next_high_vol >= next_low_vol and high_idx < len(sorted_prices) - 1:
                 high_idx += 1
@@ -109,10 +120,7 @@ class FootprintTracker:
         delta = trade.quantity if trade.aggressor_side == Side.BUY else -trade.quantity
         self.cvd += delta
 
-        if (
-            not self.current_bar
-            or trade.timestamp >= self.current_bar.end_time
-        ):
+        if not self.current_bar or trade.timestamp >= self.current_bar.end_time:
             if self.current_bar:
                 self.current_bar.finalize()
                 self.bars.append(self.current_bar)

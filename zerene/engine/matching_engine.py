@@ -7,7 +7,15 @@ Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, REDUCE_ONLY, ICEBERG, HIDDEN, STOP,
 from collections import deque
 import uuid
 from typing import List, Dict, Optional, Tuple
-from zerene.models import Order, Trade, Side, OrderType, OrderStatus, TimeInForce, STPMode
+from zerene.models import (
+    Order,
+    Trade,
+    Side,
+    OrderType,
+    OrderStatus,
+    TimeInForce,
+    STPMode,
+)
 from zerene.orderbook.book import OrderBook
 from zerene.engine.stop_manager import StopManager
 from zerene.pools import GLOBAL_TRADE_POOL

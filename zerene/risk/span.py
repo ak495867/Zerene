@@ -66,7 +66,9 @@ class SPANPortfolioRiskEngine:
     def set_cash_balance(self, owner_id: str, amount: float) -> None:
         self.cash_balances[owner_id] = amount
 
-    def update_position(self, owner_id: str, symbol: str, quantity_delta: float) -> None:
+    def update_position(
+        self, owner_id: str, symbol: str, quantity_delta: float
+    ) -> None:
         if owner_id not in self.positions:
             self.positions[owner_id] = {}
         curr = self.positions[owner_id].get(symbol, 0.0)
@@ -90,7 +92,7 @@ class SPANPortfolioRiskEngine:
             if price <= 0:
                 continue
             haircut = self.haircuts.get(sym, 0.80)
-            
+
             # Position value after haircut
             pos_val = abs(qty) * price
             base_gross_exp += pos_val

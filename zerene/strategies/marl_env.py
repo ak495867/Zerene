@@ -55,9 +55,7 @@ class MultiAgentRLMarketEnv:
         self.simulator.step(10)
         return {aid: self._get_observation(aid) for aid in self.agent_ids}
 
-    def step(
-        self, actions: Dict[str, int]
-    ) -> Tuple[
+    def step(self, actions: Dict[str, int]) -> Tuple[
         Dict[str, np.ndarray],
         Dict[str, float],
         Dict[str, bool],
@@ -94,16 +92,16 @@ class MultiAgentRLMarketEnv:
         for aid in self.agent_ids:
             obs = self._get_observation(aid)
             observations[aid] = obs
-            
+
             # Calculate PnL and inventory penalty
             engine = self.exchange.engines[self.symbol]
             mid = engine.order_book.mid_price() or 100.0
-            
+
             pos = self.positions[aid]
             curr_pnl = self.prev_pnl[aid]
             unrealized = pos * mid
             total_equity = curr_pnl + unrealized
-            
+
             # Reward delta PnL minus inventory variance penalty
             r = (total_equity - self.prev_pnl[aid]) - 0.01 * (pos**2)
             rewards[aid] = float(r)

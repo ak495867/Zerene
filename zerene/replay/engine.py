@@ -66,8 +66,12 @@ class MarketReplayEngine:
                     side_str = o_data.get("side", "BUY")
                     side = Side.BUY if side_str == "BUY" else Side.SELL
                     type_str = o_data.get("order_type", "LIMIT")
-                    order_type = OrderType[type_str] if type_str in OrderType.__members__ else OrderType.LIMIT
-                    
+                    order_type = (
+                        OrderType[type_str]
+                        if type_str in OrderType.__members__
+                        else OrderType.LIMIT
+                    )
+
                     order = Order(
                         order_id=o_data.get("order_id", f"R-{replayed_events}"),
                         client_order_id=o_data.get("client_order_id", "CR"),
@@ -92,7 +96,9 @@ class MarketReplayEngine:
             if snapshot:
                 for strat in self.strategies:
                     if sym in strat.symbols:
-                        new_orders = strat.on_market_data(sym, ts, snapshot, self.exchange)
+                        new_orders = strat.on_market_data(
+                            sym, ts, snapshot, self.exchange
+                        )
                         for o in new_orders:
                             o.timestamp = ts
                             _, strat_trades = self.exchange.submit_order(o)

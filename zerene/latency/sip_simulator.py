@@ -38,7 +38,11 @@ class SIPFeedSimulator:
         self._seq_counter = 0
 
     def publish_snapshot(
-        self, venue_id: str, symbol: str, snapshot: OrderBookSnapshot, current_time: float
+        self,
+        venue_id: str,
+        symbol: str,
+        snapshot: OrderBookSnapshot,
+        current_time: float,
     ) -> None:
         """Publishes an L2 snapshot to the SIP consolidation pipeline."""
         self._seq_counter += 1
@@ -84,21 +88,25 @@ class SIPFeedSimulator:
             s_ask = sip_snap.asks[0][0] if sip_snap.asks else None
 
             if d_bid is not None and s_bid is not None and d_bid > s_bid:
-                opportunities.append({
-                    "venue_id": vid,
-                    "side": "BUY",
-                    "stale_price": s_bid,
-                    "fresh_price": d_bid,
-                    "arb_profit_bps": ((d_bid - s_bid) / s_bid) * 10000.0,
-                })
+                opportunities.append(
+                    {
+                        "venue_id": vid,
+                        "side": "BUY",
+                        "stale_price": s_bid,
+                        "fresh_price": d_bid,
+                        "arb_profit_bps": ((d_bid - s_bid) / s_bid) * 10000.0,
+                    }
+                )
 
             if d_ask is not None and s_ask is not None and d_ask < s_ask:
-                opportunities.append({
-                    "venue_id": vid,
-                    "side": "SELL",
-                    "stale_price": s_ask,
-                    "fresh_price": d_ask,
-                    "arb_profit_bps": ((s_ask - d_ask) / s_ask) * 10000.0,
-                })
+                opportunities.append(
+                    {
+                        "venue_id": vid,
+                        "side": "SELL",
+                        "stale_price": s_ask,
+                        "fresh_price": d_ask,
+                        "arb_profit_bps": ((s_ask - d_ask) / s_ask) * 10000.0,
+                    }
+                )
 
         return opportunities

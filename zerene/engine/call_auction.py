@@ -84,19 +84,25 @@ class CallAuctionEngine:
             cum_buy = sum(
                 o.remaining_quantity
                 for o in bids
-                if o.order_type == OrderType.MARKET or (o.price is not None and o.price >= p)
+                if o.order_type == OrderType.MARKET
+                or (o.price is not None and o.price >= p)
             )
 
             # Calculate cumulative sell supply at price p (asks with price <= p or MARKET)
             cum_sell = sum(
                 o.remaining_quantity
                 for o in asks
-                if o.order_type == OrderType.MARKET or (o.price is not None and o.price <= p)
+                if o.order_type == OrderType.MARKET
+                or (o.price is not None and o.price <= p)
             )
 
             executable_vol = min(cum_buy, cum_sell)
             imbalance = abs(cum_buy - cum_sell)
-            imb_side = Side.BUY if cum_buy > cum_sell else (Side.SELL if cum_sell > cum_buy else None)
+            imb_side = (
+                Side.BUY
+                if cum_buy > cum_sell
+                else (Side.SELL if cum_sell > cum_buy else None)
+            )
 
             ref_dist = abs(p - reference_price) if reference_price is not None else 0.0
 
@@ -143,8 +149,13 @@ class CallAuctionEngine:
 
         # Sort bids (MARKET first, then highest price first, then earliest timestamp)
         eligible_bids = [
-            o for o in self.orders
-            if o.side == Side.BUY and (o.order_type == OrderType.MARKET or (o.price is not None and o.price >= clearing_price))
+            o
+            for o in self.orders
+            if o.side == Side.BUY
+            and (
+                o.order_type == OrderType.MARKET
+                or (o.price is not None and o.price >= clearing_price)
+            )
         ]
         eligible_bids.sort(
             key=lambda o: (
@@ -156,8 +167,13 @@ class CallAuctionEngine:
 
         # Sort asks (MARKET first, then lowest price first, then earliest timestamp)
         eligible_asks = [
-            o for o in self.orders
-            if o.side == Side.SELL and (o.order_type == OrderType.MARKET or (o.price is not None and o.price <= clearing_price))
+            o
+            for o in self.orders
+            if o.side == Side.SELL
+            and (
+                o.order_type == OrderType.MARKET
+                or (o.price is not None and o.price <= clearing_price)
+            )
         ]
         eligible_asks.sort(
             key=lambda o: (

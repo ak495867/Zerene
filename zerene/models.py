@@ -124,11 +124,16 @@ class Order:
         """Return a stable rejection reason for invalid external order input."""
         if not self.order_id or not self.client_order_id or not self.symbol:
             return "MISSING_ORDER_IDENTIFIERS"
-        if not isinstance(self.side, Side) or not isinstance(self.order_type, OrderType):
+        if not isinstance(self.side, Side) or not isinstance(
+            self.order_type, OrderType
+        ):
             return "INVALID_ORDER_ENUM"
         if not math.isfinite(self.quantity) or self.quantity <= 0:
             return "INVALID_QUANTITY"
-        if not math.isfinite(self.filled_quantity) or not 0 <= self.filled_quantity <= self.quantity:
+        if (
+            not math.isfinite(self.filled_quantity)
+            or not 0 <= self.filled_quantity <= self.quantity
+        ):
             return "INVALID_FILLED_QUANTITY"
         if self.price is not None and (not math.isfinite(self.price) or self.price < 0):
             return "INVALID_PRICE"
