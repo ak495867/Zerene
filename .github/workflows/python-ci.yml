@@ -111,7 +111,7 @@ jobs:
         run: |
           python -m zerene benchmark --orders 100000 --workload realistic --shards 4 --format json > bench_sharded.json
 
-      - name: 📊 Parse & Publish Dynamic Benchmark Job Summary
+      - name:  Parse & Publish Dynamic Benchmark Job Summary
         run: |
           python .github/scripts/generate_ci_summary.py
 
