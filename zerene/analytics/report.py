@@ -71,7 +71,7 @@ class AnalyticsReport:
             lines.append(
                 f"    Realized PnL:   ${m['realized_pnl']:,.2f} (Equity: ${m['equity']:,.2f})"
             )
-            lines.append(f"    Max Drawdown:   {m['max_drawdown']*100:.2f}%")
+            lines.append(f"    Max Drawdown:   {m['max_drawdown'] * 100:.2f}%")
             lines.append(f"    Sharpe Ratio:   {m['sharpe_ratio']:.2f}")
             if m["kill_switch_active"]:
                 lines.append(f"    [!] KILL SWITCH TRIPPED: {m['kill_switch_reason']}")

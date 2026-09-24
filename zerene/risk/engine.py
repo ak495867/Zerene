@@ -11,7 +11,6 @@ Real-time risk tracking engine and kill switch.
 """
 
 
-
 class PositionDict(dict):
     """
     Dictionary wrapper for positions and average prices that marks the state dirty when modified directly.
@@ -231,7 +230,7 @@ class RiskEngine:
         dd = state.calculate_drawdown(unreal)
         if dd >= state.limits.max_drawdown_pct:
             state.kill_switch_active = True
-            state.kill_switch_reason = f"MAX_DRAWDOWN_BREACH: {dd*100:.1f}% >= {state.limits.max_drawdown_pct*100:.1f}%"
+            state.kill_switch_reason = f"MAX_DRAWDOWN_BREACH: {dd * 100:.1f}% >= {state.limits.max_drawdown_pct * 100:.1f}%"
             if self.on_kill_switch_callback:
                 self.on_kill_switch_callback(order.owner_id, state.kill_switch_reason)
             return False, state.kill_switch_reason
@@ -321,6 +320,6 @@ class RiskEngine:
                 -state.realized_pnl >= state.limits.max_daily_loss
             ):
                 state.kill_switch_active = True
-                state.kill_switch_reason = f"RISK_LIMIT_BREACH (Drawdown={dd*100:.1f}%, RealizedPnL={state.realized_pnl})"
+                state.kill_switch_reason = f"RISK_LIMIT_BREACH (Drawdown={dd * 100:.1f}%, RealizedPnL={state.realized_pnl})"
                 if self.on_kill_switch_callback:
                     self.on_kill_switch_callback(owner_id, state.kill_switch_reason)

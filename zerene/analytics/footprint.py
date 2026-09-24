@@ -53,8 +53,10 @@ class FootprintBar:
         # POC: price with max total volume
         poc = max(
             self.price_level_volumes.keys(),
-            key=lambda p: self.price_level_volumes[p]["buy_vol"]
-            + self.price_level_volumes[p]["sell_vol"],
+            key=lambda p: (
+                self.price_level_volumes[p]["buy_vol"]
+                + self.price_level_volumes[p]["sell_vol"]
+            ),
         )
         self.poc_price = poc
 

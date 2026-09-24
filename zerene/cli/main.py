@@ -110,6 +110,7 @@ def main(args: Optional[List[str]] = None) -> int:
 
         if output_format == "json":
             import json
+
             print(json.dumps(results, indent=2))
             return 0
 
@@ -157,19 +158,19 @@ def main(args: Optional[List[str]] = None) -> int:
         )
         print("\n[Latency Percentiles]")
         print(
-            f"  P50 Median Latency       : {l_ns['p50_ns']:>8.1f} ns ({l_ns['p50_ns']/1000:>6.2f} µs)"
+            f"  P50 Median Latency       : {l_ns['p50_ns']:>8.1f} ns ({l_ns['p50_ns'] / 1000:>6.2f} µs)"
         )
         print(
-            f"  P90 Latency              : {l_ns['p90_ns']:>8.1f} ns ({l_ns['p90_ns']/1000:>6.2f} µs)"
+            f"  P90 Latency              : {l_ns['p90_ns']:>8.1f} ns ({l_ns['p90_ns'] / 1000:>6.2f} µs)"
         )
         print(
-            f"  P99 Latency              : {l_ns['p99_ns']:>8.1f} ns ({l_ns['p99_ns']/1000:>6.2f} µs)"
+            f"  P99 Latency              : {l_ns['p99_ns']:>8.1f} ns ({l_ns['p99_ns'] / 1000:>6.2f} µs)"
         )
         print(
-            f"  P99.9 Latency            : {l_ns['p99_9_ns']:>8.1f} ns ({l_ns['p99_9_ns']/1000:>6.2f} µs)"
+            f"  P99.9 Latency            : {l_ns['p99_9_ns']:>8.1f} ns ({l_ns['p99_9_ns'] / 1000:>6.2f} µs)"
         )
         print(
-            f"  Max Worst-Case Latency   : {l_ns['max_ns']:>8.1f} ns ({l_ns['max_ns']/1000:>6.2f} µs)"
+            f"  Max Worst-Case Latency   : {l_ns['max_ns']:>8.1f} ns ({l_ns['max_ns'] / 1000:>6.2f} µs)"
         )
         print("======================================================================")
 
