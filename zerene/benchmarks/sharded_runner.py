@@ -9,14 +9,15 @@ from zerene.benchmarks.runner import BenchmarkRunner
 
 
 def _run_shard(
-    shard_id: int, symbol: str, num_orders: int, workload: str
+    shard_id: int, symbol: str, num_orders: int, workload: str, verbose: bool = True
 ) -> Dict[str, Any]:
     """
     Worker function to run a completely isolated matching engine in its own process.
     """
     runner = BenchmarkRunner(symbol)
     result = runner.run(num_orders=num_orders, workload=workload, verbose=False)
-    print(f"  [shard-{shard_id}] Finished {num_orders:,} operations on {symbol}!")
+    if verbose:
+        print(f"  [shard-{shard_id}] Finished {num_orders:,} operations on {symbol}!")
     return result
 
 
@@ -26,22 +27,23 @@ class ShardedBenchmarkRunner:
         self.num_shards = num_shards
 
     def run(
-        self, total_orders: int = 100_000, workload: str = "realistic"
+        self, total_orders: int = 100_000, workload: str = "realistic", verbose: bool = True
     ) -> Dict[str, Any]:
         orders_per_shard = total_orders // self.num_shards
 
         symbols = [f"{self.base_symbol}-{i}" for i in range(self.num_shards)]
 
-        print(
-            f"  [sharded] Booting {self.num_shards} independent processes (1 core per matching engine)..."
-        )
+        if verbose:
+            print(
+                f"  [sharded] Booting {self.num_shards} independent processes (1 core per matching engine)..."
+            )
         start_t = time.perf_counter()
 
         with mp.Pool(processes=self.num_shards) as pool:
             results = []
             for i, symbol in enumerate(symbols):
                 res = pool.apply_async(
-                    _run_shard, (i, symbol, orders_per_shard, workload)
+                    _run_shard, (i, symbol, orders_per_shard, workload, verbose)
                 )
                 results.append(res)
 
