@@ -6,7 +6,7 @@ Enables backtesting High-Frequency Latency Arbitrage & quote pick-off strategies
 
 import heapq
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from zerene.orderbook.snapshots import OrderBookSnapshot
 
 
