@@ -7,7 +7,7 @@ Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, REDUCE_ONLY, ICEBERG, HIDDEN, STOP,
 from collections import deque
 import uuid
 from typing import List, Dict, Optional, Tuple
-from zerene.models import Order, Trade, Side, OrderType, OrderStatus, TimeInForce
+from zerene.models import Order, Trade, Side, OrderType, OrderStatus, TimeInForce, STPMode
 from zerene.orderbook.book import OrderBook
 from zerene.engine.stop_manager import StopManager
 from zerene.pools import GLOBAL_TRADE_POOL
@@ -242,6 +242,39 @@ class MatchingEngine:
                 resting = level.head()
                 if not resting:
                     break
+
+                # Self-Trade Prevention (STP) check
+                if (
+                    resting.owner_id == incoming.owner_id
+                    and incoming.owner_id != ""
+                    and incoming.owner_id != "DEFAULT"
+                ):
+                    effective_stp = (
+                        incoming.stp_mode
+                        if incoming.stp_mode != STPMode.NONE
+                        else resting.stp_mode
+                    )
+                    if effective_stp == STPMode.CANCEL_NEWEST:
+                        incoming.status = OrderStatus.CANCELED
+                        incoming.reject_reason = "STP_CANCEL_NEWEST"
+                        return trades
+                    elif effective_stp == STPMode.CANCEL_OLDEST:
+                        resting.status = OrderStatus.CANCELED
+                        level.pop_head()
+                        self.order_book.order_map.pop(resting.order_id, None)
+                        continue
+                    elif effective_stp == STPMode.DECREMENT_AND_CANCEL:
+                        overlap = min(
+                            incoming.remaining_quantity, resting.remaining_quantity
+                        )
+                        incoming.filled_quantity += overlap
+                        resting.filled_quantity += overlap
+                        level.update_volume_after_fill(resting, overlap)
+                        if resting.remaining_quantity <= 1e-9:
+                            resting.status = OrderStatus.CANCELED
+                            level.pop_head()
+                            self.order_book.order_map.pop(resting.order_id, None)
+                        continue
 
                 # Calculate match quantity
                 match_qty = min(incoming.remaining_quantity, resting.remaining_quantity)

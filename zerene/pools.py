@@ -14,6 +14,7 @@ from zerene.models import (
     OrderStatus,
     TimeInForce,
     EventType,
+    STPMode,
 )
 from zerene.orderbook.level import Node
 
@@ -55,6 +56,7 @@ class OrderPool:
         hidden_quantity: float = 0.0,
         stop_price: Optional[float] = None,
         time_in_force: TimeInForce = TimeInForce.GTC,
+        stp_mode: STPMode = STPMode.NONE,
         timestamp: float = 0.0,
         owner_id: str = "DEFAULT",
     ) -> Order:
@@ -81,6 +83,7 @@ class OrderPool:
         order.hidden_quantity = hidden_quantity
         order.stop_price = stop_price
         order.time_in_force = time_in_force
+        order.stp_mode = stp_mode
         order.timestamp = timestamp
         order.owner_id = owner_id
         order.status = OrderStatus.NEW
@@ -111,6 +114,7 @@ class OrderPool:
         order.display_quantity = None
         order.stop_price = None
         order.price = None
+        order.stp_mode = STPMode.NONE
         self.pool.append(order)
 
 

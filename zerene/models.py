@@ -59,6 +59,13 @@ def get_next_internal_id() -> int:
     return _INTERNAL_ID_COUNTER
 
 
+class STPMode(Enum):
+    NONE = "NONE"
+    CANCEL_NEWEST = "CANCEL_NEWEST"
+    CANCEL_OLDEST = "CANCEL_OLDEST"
+    DECREMENT_AND_CANCEL = "DECREMENT_AND_CANCEL"
+
+
 @dataclass(slots=True)
 class Order:
     """
@@ -81,6 +88,7 @@ class Order:
     )
     stop_price: Optional[float] = None
     time_in_force: TimeInForce = TimeInForce.GTC
+    stp_mode: STPMode = STPMode.NONE
     timestamp: float = 0.0  # Arrival or replenishment timestamp (nanoseconds/seconds)
     owner_id: str = "DEFAULT"
     status: OrderStatus = OrderStatus.NEW
