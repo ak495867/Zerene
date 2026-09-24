@@ -3,7 +3,6 @@ Tests for deterministic price-time priority matching engine conforming to RFC-00
 Tests Market, Limit, IOC, FOK, PostOnly, Iceberg replenishment, and Stop trigger execution.
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType, OrderStatus, TimeInForce
 from zerene.engine.matching_engine import MatchingEngine
 

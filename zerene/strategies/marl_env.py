@@ -6,7 +6,7 @@ with observation state vectors, multi-agent action mapping, and inventory-penali
 
 import numpy as np
 from typing import Dict, List, Tuple, Any, Optional
-from zerene.models import Order, Side, OrderType, OrderStatus
+from zerene.models import Side, OrderType
 from zerene.exchange.venue import ExchangeVenue
 from zerene.simulator.market_sim import MarketSimulator
 from zerene.pools import GLOBAL_ORDER_POOL

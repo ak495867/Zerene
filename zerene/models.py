@@ -6,7 +6,7 @@ Optimized with __slots__ and strict type definitions for institutional-grade per
 import math
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 
 class Side(Enum):

@@ -2,7 +2,6 @@
 Tests for multi-kernel Hawkes processes, OFI conditioning, and Level III tick loaders.
 """
 
-import pytest
 from zerene.datasets.generator import SyntheticFlowGenerator
 from zerene.datasets.loader import TickDataLoader
 from zerene.models import Side, OrderType

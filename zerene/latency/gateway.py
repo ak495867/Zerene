@@ -4,8 +4,8 @@ Conforms to RFC-003.
 """
 
 import heapq
-from typing import List, Optional, Callable, Dict, Any, Tuple
-from zerene.models import OrderEvent, EventType
+from typing import List, Optional, Tuple
+from zerene.models import OrderEvent
 from zerene.latency.models import LatencyModel, DeterministicLatency
 
 

@@ -3,7 +3,6 @@ Tests for reinforcement learning trading environment (`RLTradingEnvironment`).
 Verifies OpenAI Gym/Gymnasium API compatibility, isolated RNG, and MarketSimulator integration.
 """
 
-import pytest
 import numpy as np
 from zerene.strategies.rl_env import RLTradingEnvironment
 

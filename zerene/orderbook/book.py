@@ -5,7 +5,6 @@ and atomic Cancel-Replace priority preservation rules (`FIX 35=G`).
 """
 
 from sortedcontainers import SortedList
-import bisect
 from typing import Dict, List, Optional, Tuple, Any
 from zerene.models import Order, Side, OrderStatus, OrderType
 from zerene.orderbook.level import PriceLevel

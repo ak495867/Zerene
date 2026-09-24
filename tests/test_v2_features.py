@@ -9,7 +9,6 @@ Comprehensive Verification Test Suite for ZERENE Next-Gen Architecture Upgrades:
 
 import os
 import tempfile
-import pytest
 from zerene.models import Order, Side, OrderType, OrderStatus, STPMode
 from zerene.engine.call_auction import CallAuctionEngine
 from zerene.engine.matching_engine import MatchingEngine

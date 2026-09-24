@@ -3,7 +3,7 @@ Trading performance and market microstructure metric calculations.
 """
 
 import math
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from zerene.models import Trade, Side
 
 

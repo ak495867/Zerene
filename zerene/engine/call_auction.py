@@ -6,9 +6,8 @@ and resolves price ties against reference market prices.
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Tuple, Optional
+from typing import List, Tuple, Optional
 from zerene.models import Order, Side, OrderType, Trade, OrderStatus
-from zerene.orderbook.book import OrderBook
 from zerene.pools import GLOBAL_TRADE_POOL
 
 

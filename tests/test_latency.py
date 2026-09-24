@@ -2,7 +2,6 @@
 Tests for multi-hop deterministic and stochastic latency models and priority queues.
 """
 
-import pytest
 from zerene.latency.models import DeterministicLatency, StochasticLatency
 from zerene.latency.gateway import LatencyGateway
 from zerene.models import OrderEvent, EventType

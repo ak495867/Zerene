@@ -8,9 +8,7 @@ import http.server
 import socketserver
 import json
 import threading
-import time
 from typing import Optional
-from zerene.exchange.venue import ExchangeVenue
 from zerene.simulator.market_sim import MarketSimulator
 
 

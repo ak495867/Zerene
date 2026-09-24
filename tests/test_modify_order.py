@@ -2,10 +2,8 @@
 Tests for atomic Modify/Replace order (`FIX 35=G`) and time priority preservation vs loss rules.
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType, OrderStatus
 from zerene.orderbook.book import OrderBook
-from zerene.engine.matching_engine import MatchingEngine
 from zerene.exchange.venue import ExchangeVenue
 
 

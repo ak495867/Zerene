@@ -2,7 +2,6 @@
 Tests for strategies, simulation loop, and CLI.
 """
 
-import pytest
 from zerene.exchange.venue import ExchangeVenue
 from zerene.strategies.market_maker import MarketMakerStrategy
 from zerene.simulator.market_sim import MarketSimulator

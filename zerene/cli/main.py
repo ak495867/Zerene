@@ -53,6 +53,13 @@ def main(args: Optional[List[str]] = None) -> int:
         default=1,
         help="Number of parallel matching engines to spawn (sharded architecture)",
     )
+    bench_parser.add_argument(
+        "--format",
+        type=str,
+        default="text",
+        choices=["text", "json"],
+        help="Output format: text (human readable) or json (machine readable)",
+    )
 
     # Command: inspect
     inspect_parser = subparsers.add_parser(
@@ -77,10 +84,14 @@ def main(args: Optional[List[str]] = None) -> int:
         print(summary)
 
     elif parsed.command == "benchmark":
+        output_format = getattr(parsed, "format", "text")
+        verbose_flag = output_format == "text"
+
         if getattr(parsed, "shards", 1) > 1:
-            print(
-                f"\n[+] Running ZERENE Sharded Institutional Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload)...\n"
-            )
+            if verbose_flag:
+                print(
+                    f"\n[+] Running ZERENE Sharded Institutional Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload)...\n"
+                )
             from zerene.benchmarks.sharded_runner import ShardedBenchmarkRunner
 
             runner = ShardedBenchmarkRunner(
@@ -88,13 +99,19 @@ def main(args: Optional[List[str]] = None) -> int:
             )
             results = runner.run(total_orders=parsed.orders, workload=parsed.workload)
         else:
-            print(
-                f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol})...\n"
-            )
+            if verbose_flag:
+                print(
+                    f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol})...\n"
+                )
             runner = BenchmarkRunner(parsed.symbol)
             results = runner.run(
-                num_orders=parsed.orders, workload=parsed.workload, verbose=True
+                num_orders=parsed.orders, workload=parsed.workload, verbose=verbose_flag
             )
+
+        if output_format == "json":
+            import json
+            print(json.dumps(results, indent=2))
+            return 0
 
         sys_m = results["system_metadata"]
         w_m = results["workload_metadata"]
@@ -158,7 +175,7 @@ def main(args: Optional[List[str]] = None) -> int:
 
     elif parsed.command == "inspect":
         exchange = ExchangeVenue("ZERENE-INSPECT", symbols=[parsed.symbol])
-        from zerene.models import Order, Side, OrderType
+        from zerene.models import Side, OrderType
         from zerene.pools import GLOBAL_ORDER_POOL
 
         # Seed book

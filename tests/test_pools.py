@@ -2,8 +2,7 @@
 Tests for institutional memory pooling (`OrderPool`, `EventPool`) recycling behavior.
 """
 
-import pytest
-from zerene.pools import OrderPool, EventPool, GLOBAL_ORDER_POOL
+from zerene.pools import OrderPool, EventPool
 from zerene.models import Side, OrderType, OrderStatus, EventType
 
 

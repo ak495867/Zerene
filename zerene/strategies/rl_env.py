@@ -8,7 +8,7 @@ Uses isolated `numpy.random.Generator` state.
 import numpy as np
 import uuid
 from typing import Dict, Any, Tuple, Optional
-from zerene.models import Order, Side, OrderType
+from zerene.models import Side, OrderType
 from zerene.exchange.venue import ExchangeVenue
 from zerene.pools import GLOBAL_ORDER_POOL
 from zerene.simulator.market_sim import MarketSimulator

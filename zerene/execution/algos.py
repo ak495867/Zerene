@@ -5,7 +5,7 @@ Supports urgency-based passive limit order pegging and zero-allocation object po
 
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
-from zerene.models import Order, Side, OrderType, TimeInForce
+from zerene.models import Order, Side, OrderType
 from zerene.pools import GLOBAL_ORDER_POOL
 
 

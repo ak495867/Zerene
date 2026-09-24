@@ -6,8 +6,7 @@ Records high-speed deterministic binary event stream for exact market replay and
 import os
 import json
 import gzip
-from typing import Dict, Any, List, Optional
-from zerene.models import OrderEvent, Order, Trade, EventType
+from typing import Dict, Any, Optional
 
 
 class EventLogger:

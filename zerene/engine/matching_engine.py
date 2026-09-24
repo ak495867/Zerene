@@ -5,7 +5,6 @@ Supports MARKET, LIMIT, IOC, FOK, POST_ONLY, REDUCE_ONLY, ICEBERG, HIDDEN, STOP,
 """
 
 from collections import deque
-import uuid
 from typing import List, Dict, Optional, Tuple
 from zerene.models import (
     Order,

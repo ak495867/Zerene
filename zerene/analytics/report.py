@@ -3,11 +3,9 @@ Structured Analytics & Microstructure Quality Report container.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import Dict, Any
 from zerene.analytics.metrics import (
     calculate_sharpe_ratio,
-    calculate_max_drawdown,
-    calculate_profit_factor,
 )
 
 

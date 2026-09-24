@@ -3,7 +3,7 @@ Stop and Stop-Limit conditional order manager.
 Conforms to RFC-001 Section 4.8.
 """
 
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple
 import heapq
 from zerene.models import Order, Side, OrderType, OrderStatus
 

@@ -4,10 +4,9 @@ Enforces Minimum Price Variation (MPV / Tick Size), Lot Size, Step Size,
 and order quantity boundaries per trading symbol.
 """
 
-import math
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from zerene.models import Order, Side, OrderType, OrderStatus
+from zerene.models import Order
 
 
 @dataclass(slots=True)

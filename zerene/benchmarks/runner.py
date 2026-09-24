@@ -12,7 +12,7 @@ import platform
 import sys
 import gc
 from typing import Dict, Any, List
-from zerene.models import Order, Side, OrderType
+from zerene.models import Side, OrderType
 from zerene.engine.matching_engine import MatchingEngine
 from zerene.pools import GLOBAL_ORDER_POOL
 

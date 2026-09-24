@@ -2,7 +2,6 @@
 Tests for FIFO limit order book, queue position indexing, and depth snapshots.
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType
 from zerene.orderbook.book import OrderBook
 from zerene.orderbook.snapshots import OrderBookSnapshot

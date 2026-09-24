@@ -4,7 +4,7 @@ Places dynamic quotes around mid price adjusted for inventory risk.
 Uses zero-allocation object pooling (`GLOBAL_ORDER_POOL`).
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Any, Optional
 from zerene.models import Order, Side, OrderType, Trade
 from zerene.strategies.base import Strategy
 from zerene.exchange.venue import ExchangeVenue

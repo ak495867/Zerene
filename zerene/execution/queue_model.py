@@ -6,7 +6,7 @@ given trade execution rate and cancellation intensity ahead in queue.
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 from zerene.orderbook.book import OrderBook
 
 

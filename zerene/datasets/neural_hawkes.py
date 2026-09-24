@@ -5,9 +5,8 @@ lambda_k(t) = Softplus(mu_k + sum_j alpha_jk * exp(-beta_jk * (t - t_j)))
 with isolated numpy random generator state and vectorized sampling.
 """
 
-import math
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from zerene.models import Order, Side, OrderType
 from zerene.pools import GLOBAL_ORDER_POOL
 

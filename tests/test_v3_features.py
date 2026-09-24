@@ -7,7 +7,6 @@ Comprehensive Verification Test Suite for ZERENE Batch #2 Architecture Upgrades:
 5. Neural Hawkes Process Generator
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType
 from zerene.engine.symbol_rules import SymbolSpecification
 from zerene.engine.pegged import PeggedOrderManager
@@ -17,7 +16,6 @@ from zerene.execution.queue_model import OrderQueueEstimator
 from zerene.datasets.neural_hawkes import NeuralHawkesGenerator
 from zerene.orderbook.book import OrderBook
 from zerene.orderbook.snapshots import OrderBookSnapshot
-from zerene.pools import GLOBAL_ORDER_POOL
 
 
 def test_symbol_specification_and_pegged_orders():

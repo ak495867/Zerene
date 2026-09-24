@@ -5,7 +5,6 @@ Deterministic and Stochastic Latency models conforming to RFC-003.
 import random
 import math
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class LatencyModel(ABC):

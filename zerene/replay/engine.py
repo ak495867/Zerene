@@ -5,9 +5,8 @@ Replays saved event streams (.zlog / .zlog.gz) tick-by-tick to backtest strategi
 
 import gzip
 import json
-import os
 from typing import List, Dict, Any, Optional, Iterator
-from zerene.models import Order, Side, OrderType, TimeInForce
+from zerene.models import Order, Side, OrderType
 from zerene.exchange.venue import ExchangeVenue
 from zerene.strategies.base import Strategy
 

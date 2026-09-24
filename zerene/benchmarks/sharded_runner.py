@@ -4,7 +4,7 @@ Multiprocessing sharded benchmark to demonstrate linear scaling across multiple 
 
 import time
 import multiprocessing as mp
-from typing import Dict, Any, List
+from typing import Dict, Any
 from zerene.benchmarks.runner import BenchmarkRunner
 
 

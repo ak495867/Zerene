@@ -4,7 +4,7 @@ Eliminates Python garbage collection (`gc`) pauses during high-throughput multi-
 """
 
 from collections import deque
-from typing import Optional, List
+from typing import Optional
 from zerene.models import (
     Order,
     Trade,

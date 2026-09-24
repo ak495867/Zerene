@@ -5,7 +5,7 @@ Value Area High/Low (VAH/VAL), and Cumulative Volume Delta (CVD).
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from zerene.models import Trade, Side
 
 

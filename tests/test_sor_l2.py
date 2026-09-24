@@ -2,7 +2,6 @@
 Tests for SmartOrderRouter Level II depth sweeping and rebate optimization across venues.
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType
 from zerene.engine.matching_engine import MatchingEngine
 from zerene.execution.router import SmartOrderRouter, VenueFeeSchedule

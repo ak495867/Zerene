@@ -3,7 +3,7 @@ Tick data replay loader supporting CSV, structured tick dictionaries, and Parque
 """
 
 import csv
-from typing import List, Dict, Any, Generator, Optional
+from typing import List, Dict, Any, Generator
 from zerene.models import Order, Side, OrderType
 from zerene.pools import GLOBAL_ORDER_POOL
 

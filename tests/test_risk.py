@@ -2,7 +2,6 @@
 Tests for real-time risk tracking engine, VaR/CVaR, and automated kill switch.
 """
 
-import pytest
 from zerene.models import Order, Side, OrderType, Trade
 from zerene.risk.limits import RiskLimits
 from zerene.risk.engine import RiskEngine

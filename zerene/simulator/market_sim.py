@@ -9,8 +9,8 @@ import heapq
 import numpy as np
 import uuid
 from enum import Enum
-from typing import List, Dict, Optional, Any
-from zerene.models import Order, Side, OrderType, OrderEvent, EventType
+from typing import List, Dict, Optional
+from zerene.models import Order, Side, OrderType, EventType
 from zerene.pools import GLOBAL_EVENT_POOL, GLOBAL_ORDER_POOL
 from zerene.exchange.venue import ExchangeVenue
 from zerene.strategies.base import Strategy

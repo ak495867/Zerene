@@ -3,8 +3,8 @@ Abstract base class for modular strategy plugins.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from zerene.models import Order, Trade, OrderEvent
+from typing import List, Dict, Any
+from zerene.models import Order, Trade
 from zerene.exchange.venue import ExchangeVenue
 
 

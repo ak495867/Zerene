@@ -4,10 +4,9 @@ Implements institutional portfolio margin calculation under multi-scenario stres
 with collateral haircuts and automated liquidation cascades.
 """
 
-import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
-from zerene.models import Order, Side, OrderType, Trade
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+from zerene.models import Order, Side, OrderType
 from zerene.exchange.venue import ExchangeVenue
 
 

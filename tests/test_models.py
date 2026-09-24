@@ -2,8 +2,7 @@
 Tests for core data models and order lifecycle enums.
 """
 
-import pytest
-from zerene.models import Order, Side, OrderType, OrderStatus, TimeInForce
+from zerene.models import Order, Side, OrderType, OrderStatus
 
 
 def test_order_initialization_defaults():
