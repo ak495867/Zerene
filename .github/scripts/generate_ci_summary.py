@@ -68,6 +68,11 @@ def main():
         with open(summary_file, "a", encoding="utf-8") as f:
             f.write(summary)
     else:
+        try:
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
         print(summary)
 
 
