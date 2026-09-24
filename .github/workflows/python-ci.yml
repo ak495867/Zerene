@@ -31,7 +31,7 @@ jobs:
       - name:  Install quality tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff "mypy==2.1.0" -e .[dev,analytics]
+          pip install "ruff==0.15.20" "mypy==2.1.0" -e .[dev,analytics]
       - name:  Check code formatting & linting with Ruff
         run: |
           ruff check zerene/ tests/
