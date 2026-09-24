@@ -1,4 +1,4 @@
-name: ZERENE Enterprise CI/CD Pipeline ⚡
+name: ZERENE Enterprise CI/CD Pipeline 
 
 on:
   push:
@@ -16,29 +16,28 @@ jobs:
   # JOB 1: Fast Linting, Formatting, & Static Type Inspection
   # --------------------------------------------------------------------------
   lint-and-quality:
-    name: 🔍 Lint, Format & Static Type Check
+    name:  Lint, Format & Static Type Check
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repository
+      - name:  Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python 3.12
+      - name:  Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: 📦 Install quality tools
+      - name:  Install quality tools
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy -e .[dev,analytics]
-
-      - name: 🧹 Check code formatting & linting with Ruff
+          pip install "ruff==0.15.20" mypy -e ".[dev,analytics]"
+      - name:  Check code formatting & linting with Ruff
         run: |
           ruff check zerene/ tests/
           ruff format --check zerene/ tests/
 
-      - name: 🏷️ Type checking with Mypy
+      - name:  Type checking with Mypy
         run: |
           mypy zerene/ --ignore-missing-imports --no-strict-optional
 
@@ -46,7 +45,7 @@ jobs:
   # JOB 2: Comprehensive Multi-OS & Multi-Python Test Matrix
   # --------------------------------------------------------------------------
   matrix-test-suite:
-    name: 🧪 Unit & Microstructure Tests (${{ matrix.os }} - Py ${{ matrix.python-version }})
+    name:  Unit & Microstructure Tests (${{ matrix.os }} - Py ${{ matrix.python-version }})
     needs: [lint-and-quality]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -56,25 +55,25 @@ jobs:
         python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
-      - name: 📥 Checkout repository
+      - name:  Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
+      - name:  Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: 📦 Install dependencies
+      - name:  Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev,analytics]
 
-      - name: 🧪 Execute Institutional Test Suite (49/49 Unit Tests)
+      - name:  Execute Test Suite (49/49 Unit Tests)
         run: |
           pytest -v --cov=zerene --cov-report=term-missing --cov-report=xml tests/
 
-      - name: 📤 Upload Coverage Artifact
+      - name:  Upload Coverage Artifact
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
@@ -86,33 +85,33 @@ jobs:
   # JOB 3: Institutional Throughput & Latency Benchmarks
   # --------------------------------------------------------------------------
   institutional-benchmarks:
-    name: ⚡ Institutional Microstructure Benchmarks
+    name:  Institutional Microstructure Benchmarks
     needs: [matrix-test-suite]
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repository
+      - name:  Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python 3.12
+      - name:  Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
 
-      - name: 📦 Install ZERENE
+      - name:  Install ZERENE
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev,analytics]
 
-      - name: 🏃 Run Single-Threaded Benchmark (50k ops)
+      - name:  Run Single-Threaded Benchmark (50k ops)
         run: |
           python -m zerene benchmark --orders 50000 --workload realistic --format json > bench_single.json
 
-      - name: 🚀 Run Multi-Process Symbol Sharding Benchmark (100k ops, 4 shards)
+      - name:  Run Multi-Process Symbol Sharding Benchmark (100k ops, 4 shards)
         run: |
           python -m zerene benchmark --orders 100000 --workload realistic --shards 4 --format json > bench_sharded.json
 
-      - name: 📊 Parse & Publish Dynamic Benchmark Job Summary
+      - name:  Parse & Publish Dynamic Benchmark Job Summary
         run: |
           python -c '
           import json, os
@@ -127,25 +126,25 @@ jobs:
           m_exec = sharded["execution_metrics"]
           m_lat = sharded["latencies_ns"]
 
-          summary = f"""## ZERENE Institutional Verification & Benchmark Report ⚡
+          summary = f"""## ZERENE Institutional Verification & Benchmark Report 
 
-          ### 🚀 Dynamic Microstructure Throughput Results
+          ###  Dynamic Microstructure Throughput Results
           | Execution Mode | Workload | Total Ops | Throughput (ops/sec) | P50 Latency | P99 Latency | Max Latency |
           | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
           | **Single-Thread CPython** | Realistic | {single["workload_metadata"]["total_operations"]:,} | **{s_exec["orders_per_second"]:,.2f}** | {s_lat["p50_ns"]/1000:.2f} µs | {s_lat["p99_ns"]/1000:.2f} µs | {s_lat["max_ns"]/1000:.2f} µs |
           | **Multi-Process Sharded (4 cores)** | Realistic | {sharded["workload_metadata"]["total_operations"]:,} | **{m_exec["orders_per_second"]:,.2f}** | {m_lat["p50_ns"]/1000:.2f} µs | {m_lat["p99_ns"]/1000:.2f} µs | {m_lat["max_ns"]/1000:.2f} µs |
 
-          ### 🏛️ Verified Next-Gen Architectural Subsystems (49/49 Unit Tests Passing)
-          - ✅ **Call Auction Engine**: Single equilibrium clearing price volume maximization ([call_auction.py](file:///D:/zerene/zerene/engine/call_auction.py))
-          - ✅ **Self-Trade Prevention**: CANCEL_NEWEST, CANCEL_OLDEST, DECREMENT_AND_CANCEL ([matching_engine.py](file:///D:/zerene/zerene/engine/matching_engine.py))
-          - ✅ **Deterministic Replay Engine**: Binary compressed log streams (.zlog.gz) ([logger.py](file:///D:/zerene/zerene/replay/logger.py))
-          - ✅ **Multi-Agent RL Sandbox**: Gym competitive environment (PettingZoo compatible) ([marl_env.py](file:///D:/zerene/zerene/strategies/marl_env.py))
-          - ✅ **SPAN Portfolio Risk**: Collateral haircuts, scenario stress tests & liquidations ([span.py](file:///D:/zerene/zerene/risk/span.py))
-          - ✅ **Dynamic Pegged Orders**: Midpoint Peg, Primary Peg, Market Peg with offsets ([pegged.py](file:///D:/zerene/zerene/engine/pegged.py))
-          - ✅ **SIP Delay & Latency Arbitrage**: Consolidated feed delay & quote pick-off model ([sip_simulator.py](file:///D:/zerene/zerene/latency/sip_simulator.py))
-          - ✅ **Footprint & CVD Analytics**: Bid/Ask volume delta, POC, VAH/VAL profiles ([footprint.py](file:///D:/zerene/zerene/analytics/footprint.py))
-          - ✅ **Queue Position Estimator**: Order queue rank, volume ahead & P_fill model ([queue_model.py](file:///D:/zerene/zerene/execution/queue_model.py))
-          - ✅ **Neural Hawkes Process**: Non-linear softplus intensity order flow surrogate ([neural_hawkes.py](file:///D:/zerene/zerene/datasets/neural_hawkes.py))
+          ###  Verified Next-Gen Architectural Subsystems (49/49 Unit Tests Passing)
+          -  **Call Auction Engine**: Single equilibrium clearing price volume maximization ([call_auction.py](file:///D:/zerene/zerene/engine/call_auction.py))
+          -  **Self-Trade Prevention**: CANCEL_NEWEST, CANCEL_OLDEST, DECREMENT_AND_CANCEL ([matching_engine.py](file:///D:/zerene/zerene/engine/matching_engine.py))
+          -  **Deterministic Replay Engine**: Binary compressed log streams (.zlog.gz) ([logger.py](file:///D:/zerene/zerene/replay/logger.py))
+          -  **Multi-Agent RL Sandbox**: Gym competitive environment (PettingZoo compatible) ([marl_env.py](file:///D:/zerene/zerene/strategies/marl_env.py))
+          -  **SPAN Portfolio Risk**: Collateral haircuts, scenario stress tests & liquidations ([span.py](file:///D:/zerene/zerene/risk/span.py))
+          -  **Dynamic Pegged Orders**: Midpoint Peg, Primary Peg, Market Peg with offsets ([pegged.py](file:///D:/zerene/zerene/engine/pegged.py))
+          -  **SIP Delay & Latency Arbitrage**: Consolidated feed delay & quote pick-off model ([sip_simulator.py](file:///D:/zerene/zerene/latency/sip_simulator.py))
+          -  **Footprint & CVD Analytics**: Bid/Ask volume delta, POC, VAH/VAL profiles ([footprint.py](file:///D:/zerene/zerene/analytics/footprint.py))
+          -  **Queue Position Estimator**: Order queue rank, volume ahead & P_fill model ([queue_model.py](file:///D:/zerene/zerene/execution/queue_model.py))
+          -  **Neural Hawkes Process**: Non-linear softplus intensity order flow surrogate ([neural_hawkes.py](file:///D:/zerene/zerene/datasets/neural_hawkes.py))
           """
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
@@ -156,28 +155,28 @@ jobs:
   # JOB 4: Package Build & Installation Verification
   # --------------------------------------------------------------------------
   package-build-check:
-    name: 📦 Package Build & Install Verification
+    name:  Package Build & Install Verification
     needs: [matrix-test-suite]
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repository
+      - name:  Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python 3.12
+      - name:  Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: 📦 Build sdist and wheel
+      - name:  Build sdist and wheel
         run: |
           python -m pip install --upgrade pip build twine
           python -m build
 
-      - name: 🔍 Check package distribution metadata
+      - name:  Check package distribution metadata
         run: |
           twine check dist/*
 
-      - name: 🧪 Verify wheel installation in clean environment
+      - name:  Verify wheel installation in clean environment
         run: |
           pip install dist/*.whl
           zerene --help
@@ -187,10 +186,10 @@ jobs:
   # JOB 5: Final Status Gate
   # --------------------------------------------------------------------------
   ci-status-gate:
-    name: 🛡️ ZERENE CI Status Gate
+    name:  ZERENE CI Status Gate
     needs: [lint-and-quality, matrix-test-suite, institutional-benchmarks, package-build-check]
     runs-on: ubuntu-latest
     steps:
-      - name: 🎉 CI Success Gate
+      - name:  CI Success Gate
         run: |
           echo "All jobs passed successfully! ZERENE CI Status Gate is GREEN."
