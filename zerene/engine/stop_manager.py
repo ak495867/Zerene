@@ -15,12 +15,12 @@ class StopManager:
     """
 
     def __init__(self):
-        self.buy_stops: List[Tuple[float, float, str, Order]] = (
-            []
-        )  # Min-heap sorted by (stop_price, timestamp, order_id, order)
-        self.sell_stops: List[Tuple[float, float, str, Order]] = (
-            []
-        )  # Max-heap sorted by (-stop_price, timestamp, order_id, order)
+        self.buy_stops: List[
+            Tuple[float, float, str, Order]
+        ] = []  # Min-heap sorted by (stop_price, timestamp, order_id, order)
+        self.sell_stops: List[
+            Tuple[float, float, str, Order]
+        ] = []  # Max-heap sorted by (-stop_price, timestamp, order_id, order)
         self.order_map: Dict[str, Order] = {}
 
     def add_order(self, order: Order) -> None:
