@@ -30,6 +30,9 @@ class OrderType(Enum):
     STOP = "STOP"
     STOP_LIMIT = "STOP_LIMIT"
     REPLACE = "REPLACE"
+    MIDPOINT_PEG = "MIDPOINT_PEG"
+    PRIMARY_PEG = "PRIMARY_PEG"
+    MARKET_PEG = "MARKET_PEG"
 
 
 class OrderStatus(Enum):
