@@ -2,7 +2,6 @@
 Unit tests for calibration module (Hawkes MLE, Kyle's Lambda, and Stylized Facts).
 """
 
-import pytest
 import numpy as np
 from zerene.calibration import (
     HawkesCalibrator,

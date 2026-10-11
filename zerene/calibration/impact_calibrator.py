@@ -7,7 +7,7 @@ from historical trade executions and corresponding quote price revisions.
 import math
 import numpy as np
 from dataclasses import dataclass
-from typing import Sequence, Optional
+from typing import Sequence
 from zerene.calibration.adapters import ExchangeTick
 from zerene.models import Side
 

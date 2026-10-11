@@ -3,7 +3,6 @@ Exchange Data Adapters for Level 2 / Level 3 market data feeds.
 Normalizes raw trade, quote, and depth events into standard structures for calibration and replay.
 """
 
-import json
 import csv
 from dataclasses import dataclass
 from typing import List, Optional, Generator, Dict, Any

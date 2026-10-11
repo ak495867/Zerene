@@ -7,7 +7,7 @@ from empirical tick arrival timestamps (e.g., real trade or quote events).
 import math
 import numpy as np
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple, Optional
+from typing import Sequence, Optional
 
 
 @dataclass(slots=True)

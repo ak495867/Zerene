@@ -7,10 +7,9 @@ Validates whether simulation output or empirical tick streams exhibit establishe
 4. Order flow persistence / autocorrelation
 """
 
-import math
 import numpy as np
 from dataclasses import dataclass
-from typing import Sequence, Dict, Any, List
+from typing import Sequence, Dict, Any
 from zerene.models import Trade
 
 
@@ -63,7 +62,6 @@ class StylizedFactsEvaluator:
 
         n = len(returns)
         mean_r = np.mean(returns)
-        var_r = np.var(returns)
         std_r = np.std(returns)
 
         if std_r <= 1e-12:

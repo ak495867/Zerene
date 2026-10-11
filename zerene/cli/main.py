@@ -275,10 +275,10 @@ def main(args: Optional[List[str]] = None) -> int:
         timestamps = [t.timestamp for t in ticks]
         hawkes_fit = HawkesCalibrator.fit(timestamps)
 
-        print(f"[+] Calibrating Kyle's Lambda price impact...")
+        print("[+] Calibrating Kyle's Lambda price impact...")
         impact_fit = ImpactCalibrator.fit_kyles_lambda(ticks)
 
-        print(f"[+] Evaluating empirical stylized facts...")
+        print("[+] Evaluating empirical stylized facts...")
         prices = [t.price for t in ticks]
         report = StylizedFactsEvaluator.evaluate_prices(prices)
 
