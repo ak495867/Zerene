@@ -20,6 +20,9 @@ struct CppBenchmarkResult {
     uint64_t market_count;
     uint64_t cancel_count;
     uint64_t modify_count;
+    uint64_t successful_cancels;
+    uint64_t successful_modifies;
+    uint64_t final_order_count;
 };
 
 inline CppBenchmarkResult run_cpp_benchmark(
@@ -31,17 +34,20 @@ inline CppBenchmarkResult run_cpp_benchmark(
     MatchingEngineCore engine(symbol, 1'000'000);
     engine.set_record_trades(false);
 
-    // Pre-seed book across 250 price levels on each side
-    for (int i = 1; i <= 250; ++i) {
-        engine.process_order_fast(1000000 + i, Side::BUY, OrderType::LIMIT, 1'000'000 - i * 5, 1000.0);
-        engine.process_order_fast(2000000 + i, Side::SELL, OrderType::LIMIT, 1'000'000 + i * 5, 1000.0);
-    }
+    // Cache-resident active order ring buffer (64K entries = 256 KB, 100% in L2 cache)
+    constexpr size_t ACTIVE_RING_SIZE = 65536;
+    constexpr size_t ACTIVE_RING_MASK = ACTIVE_RING_SIZE - 1;
+    std::vector<uint32_t> active_ids(ACTIVE_RING_SIZE, 0);
+    size_t active_head = 0;
 
-    std::vector<uint32_t> active_ids;
-    active_ids.reserve(50'000);
+    // Pre-seed book across 250 price levels on each side (institutional backstop liquidity)
     for (int i = 1; i <= 250; ++i) {
-        active_ids.push_back(1000000 + i);
-        active_ids.push_back(2000000 + i);
+        uint32_t bid_id = 1000000 + i;
+        uint32_t ask_id = 2000000 + i;
+        engine.process_order_fast(bid_id, Side::BUY, OrderType::LIMIT, 1'000'000 - i * 5, 1000.0);
+        engine.process_order_fast(ask_id, Side::SELL, OrderType::LIMIT, 1'000'000 + i * 5, 1000.0);
+        active_ids[active_head++ & ACTIVE_RING_MASK] = bid_id;
+        active_ids[active_head++ & ACTIVE_RING_MASK] = ask_id;
     }
 
     // Fast XorShift128+ random generator
@@ -63,6 +69,10 @@ inline CppBenchmarkResult run_cpp_benchmark(
     uint64_t market_count = 0;
     uint64_t cancel_count = 0;
     uint64_t modify_count = 0;
+    uint64_t successful_cancels = 0;
+    uint64_t successful_modifies = 0;
+
+    uint64_t print_interval = std::max<uint64_t>(2'000'000, num_ops / 10);
 
     auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -77,26 +87,39 @@ inline CppBenchmarkResult run_cpp_benchmark(
             int64_t offset = static_cast<int64_t>((r >> 8) % 100) - 50; // ±50 ticks
             int64_t price_ticks = 1'000'000 + offset;
             engine.process_order_fast(oid, side, OrderType::LIMIT, price_ticks, 10.0);
-            if (active_ids.size() < 50'000) {
-                active_ids.push_back(oid);
-            } else {
-                active_ids[(r >> 16) % 50'000] = oid;
+            
+            size_t slot = active_head++ & ACTIVE_RING_MASK;
+            uint32_t evicted = active_ids[slot];
+            if (evicted != 0) {
+                engine.cancel_order_fast(evicted);
             }
+            active_ids[slot] = oid;
         } else if (op_type < 70) { // 25% Market sweeps
             market_count++;
             engine.process_order_fast(oid, side, OrderType::MARKET, 0, 5.0);
-        } else if (op_type < 90 && !active_ids.empty()) { // 20% Cancels
+        } else if (op_type < 90) { // 20% Cancels
             cancel_count++;
-            uint32_t target_id = active_ids[(r >> 24) % active_ids.size()];
-            engine.cancel_order_fast(target_id);
-        } else if (!active_ids.empty()) { // 10% Modifies
+            size_t slot = (r >> 24) & ACTIVE_RING_MASK;
+            uint32_t target_id = active_ids[slot];
+            if (target_id != 0) {
+                if (engine.cancel_order_fast(target_id)) {
+                    successful_cancels++;
+                    active_ids[slot] = 0;
+                }
+            }
+        } else { // 10% Modifies
             modify_count++;
-            uint32_t target_id = active_ids[(r >> 32) % active_ids.size()];
-            int64_t new_price = 1'000'000 + (static_cast<int64_t>((r >> 40) % 20) - 10);
-            engine.modify_order_fast(target_id, 20.0, new_price);
+            size_t slot = (r >> 32) & ACTIVE_RING_MASK;
+            uint32_t target_id = active_ids[slot];
+            if (target_id != 0) {
+                int64_t new_price = 1'000'000 + (static_cast<int64_t>((r >> 40) % 20) - 10);
+                if (engine.modify_order_fast(target_id, 20.0, new_price)) {
+                    successful_modifies++;
+                }
+            }
         }
 
-        if (verbose && __builtin_expect((i + 1) % 2'000'000 == 0, 0)) {
+        if (verbose && __builtin_expect((i + 1) % print_interval == 0, 0)) {
             auto now = std::chrono::high_resolution_clock::now();
             double elapsed = std::chrono::duration<double>(now - t0).count();
             std::cout << "  [bench-cpp] " << (i + 1) / 1'000'000 << "M / "
@@ -120,7 +143,10 @@ inline CppBenchmarkResult run_cpp_benchmark(
         limit_count,
         market_count,
         cancel_count,
-        modify_count
+        modify_count,
+        successful_cancels,
+        successful_modifies,
+        engine.book().order_count()
     };
 }
 
@@ -160,7 +186,10 @@ PYBIND11_MODULE(zerene_cpp_core, m) {
         .def_readonly("limit_count", &CppBenchmarkResult::limit_count)
         .def_readonly("market_count", &CppBenchmarkResult::market_count)
         .def_readonly("cancel_count", &CppBenchmarkResult::cancel_count)
-        .def_readonly("modify_count", &CppBenchmarkResult::modify_count);
+        .def_readonly("modify_count", &CppBenchmarkResult::modify_count)
+        .def_readonly("successful_cancels", &CppBenchmarkResult::successful_cancels)
+        .def_readonly("successful_modifies", &CppBenchmarkResult::successful_modifies)
+        .def_readonly("final_order_count", &CppBenchmarkResult::final_order_count);
 
     m.def("run_cpp_benchmark", &run_cpp_benchmark,
           py::arg("symbol") = "BENCH-USD",

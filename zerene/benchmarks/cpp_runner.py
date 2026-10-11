@@ -50,6 +50,9 @@ class CppBenchmarkRunner:
             modify_count = cpp_res.modify_count
             best_bid_ticks = cpp_res.best_bid_ticks
             best_ask_ticks = cpp_res.best_ask_ticks
+            successful_cancels = getattr(cpp_res, "successful_cancels", cancel_count)
+            successful_modifies = getattr(cpp_res, "successful_modifies", modify_count)
+            final_order_count = getattr(cpp_res, "final_order_count", 500)
         else:
             engine = mod.MatchingEngineCore(self.symbol, 1_000_000)
 
@@ -137,6 +140,9 @@ class CppBenchmarkRunner:
             trades_count = engine.trade_count()
             best_bid_ticks = engine.best_bid_ticks()
             best_ask_ticks = engine.best_ask_ticks()
+            successful_cancels = cancel_count
+            successful_modifies = modify_count
+            final_order_count = engine.order_count()
 
         # Latency estimations: 1 / (ops_per_sec) in ns
         avg_lat_ns = (elapsed / total_ops) * 1e9
@@ -167,9 +173,10 @@ class CppBenchmarkRunner:
                 "millions_ops_per_second": round(ops_per_sec / 1e6, 2),
                 "total_trades_generated": trades_count,
                 "avg_matches_per_order": round(trades_count / max(1, total_ops), 3),
-                "successful_cancels": cancel_count,
-                "successful_modifies": modify_count,
+                "successful_cancels": successful_cancels,
+                "successful_modifies": successful_modifies,
                 "final_orderbook_depth_levels": 500,
+                "final_resting_orders": final_order_count,
                 "final_best_bid_ticks": best_bid_ticks,
                 "final_best_ask_ticks": best_ask_ticks,
             },

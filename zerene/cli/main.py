@@ -240,6 +240,10 @@ def main(args: Optional[List[str]] = None) -> int:
             print(
                 f"  Final Orderbook Depth    : {exec_m['final_orderbook_depth_levels']} active price levels"
             )
+        if "final_resting_orders" in exec_m:
+            print(
+                f"  Final Resting Orders     : {exec_m['final_resting_orders']:,}"
+            )
         print("\n[Latency Percentiles]")
         print(
             f"  P50 Median Latency       : {l_ns['p50_ns']:>8.1f} ns ({l_ns['p50_ns'] / 1000:>6.2f} µs)"
