@@ -219,30 +219,31 @@ class MatchingEngine:
         trades: List[Trade] = []
 
         while incoming.remaining_quantity > 1e-9:
-            # Get best opposite price
+            # Get best opposite price in exact ticks
             if incoming.side == Side.BUY:
-                best_price = self.order_book.best_ask()
-                # Check price limits
-                if best_price is None:
+                best_ticks = self.order_book.best_ask_ticks()
+                if best_ticks is None:
                     break
+                best_price = best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
                 if (
                     incoming.order_type != OrderType.MARKET
                     and incoming.price is not None
                     and incoming.price < best_price
                 ):
                     break
-                level = self.order_book.asks[best_price]
+                level = self.order_book.asks[best_ticks]
             else:
-                best_price = self.order_book.best_bid()
-                if best_price is None:
+                best_ticks = self.order_book.best_bid_ticks()
+                if best_ticks is None:
                     break
+                best_price = best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
                 if (
                     incoming.order_type != OrderType.MARKET
                     and incoming.price is not None
                     and incoming.price > best_price
                 ):
                     break
-                level = self.order_book.bids[best_price]
+                level = self.order_book.bids[best_ticks]
 
             # Match against FIFO queue at this price level
             while not level.is_empty() and incoming.remaining_quantity > 1e-9:
@@ -323,18 +324,9 @@ class MatchingEngine:
                     if resting.order_id in self.order_book.order_map:
                         del self.order_book.order_map[resting.order_id]
 
-            # Clean empty price level
-            self.order_book.clean_empty_level(best_price, incoming.side.opposite)
-            if (
-                self.order_book.bids.get(best_price) is not None
-                and self.order_book.bids[best_price].is_empty()
-            ):
-                self.order_book.clean_empty_level(best_price, Side.BUY)
-            if (
-                self.order_book.asks.get(best_price) is not None
-                and self.order_book.asks[best_price].is_empty()
-            ):
-                self.order_book.clean_empty_level(best_price, Side.SELL)
+            # Clean empty price level if drained
+            if level.is_empty():
+                self.order_book.clean_empty_level(best_ticks, incoming.side.opposite)
 
         return trades
 
