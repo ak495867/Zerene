@@ -67,6 +67,13 @@ def main(args: Optional[List[str]] = None) -> int:
         help="Output filepath when --format html is selected",
     )
     bench_parser.add_argument(
+        "--engine",
+        type=str,
+        default="auto",
+        choices=["auto", "cpp", "python"],
+        help="Matching engine core: cpp (native 10M+ ops/sec), python, or auto",
+    )
+    bench_parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -116,6 +123,19 @@ def main(args: Optional[List[str]] = None) -> int:
         verbose_flag = output_format == "text"
         bench_seed = getattr(parsed, "seed", 42)
 
+        engine_mode = getattr(parsed, "engine", "auto")
+        from zerene.engine.c_accelerator import NativeMatchingAccelerator
+
+        use_cpp = False
+        if engine_mode == "cpp":
+            if not NativeMatchingAccelerator.is_available():
+                print("[-] Error: Native C++ engine requested (--engine cpp), but zerene_cpp_core is not compiled.")
+                return 1
+            use_cpp = True
+        elif engine_mode == "auto":
+            if NativeMatchingAccelerator.is_available() and getattr(parsed, "shards", 1) <= 1:
+                use_cpp = True
+
         if getattr(parsed, "shards", 1) > 1:
             if verbose_flag:
                 print(
@@ -132,10 +152,24 @@ def main(args: Optional[List[str]] = None) -> int:
                 verbose=verbose_flag,
                 seed=bench_seed,
             )
+        elif use_cpp:
+            from zerene.benchmarks.cpp_runner import CppBenchmarkRunner
+
+            if verbose_flag:
+                print(
+                    f"\n[+] Running ZERENE Ultra C++ Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol}, seed={bench_seed})...\n"
+                )
+            cpp_runner = CppBenchmarkRunner(parsed.symbol, seed=bench_seed)
+            results = cpp_runner.run(
+                num_orders=parsed.orders,
+                workload=parsed.workload,
+                verbose=verbose_flag,
+                seed=bench_seed,
+            )
         else:
             if verbose_flag:
                 print(
-                    f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol}, seed={bench_seed})...\n"
+                    f"\n[+] Running ZERENE Institutional Python Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol}, seed={bench_seed})...\n"
                 )
             single_runner = BenchmarkRunner(parsed.symbol, seed=bench_seed)
             results = single_runner.run(
@@ -175,19 +209,20 @@ def main(args: Optional[List[str]] = None) -> int:
         print(f"  CPU Processor            : {sys_m['cpu_processor']}")
         print(f"  Execution Mode           : {sys_m['execution_mode']}")
         print(
-            f"  Garbage Collector        : {'Enabled' if sys_m['gc_enabled'] else 'Disabled'}"
+            f"  Garbage Collector        : {'Enabled' if sys_m.get('gc_enabled', False) else 'Disabled'}"
         )
         print("\n[Workload Configuration]")
         print(f"  Target Symbol            : {w_m['symbol']}")
         print(f"  Workload Mode            : {w_m['workload_mode'].upper()}")
         print(f"  Total Operations         : {w_m['total_operations']:,}")
         if getattr(parsed, "shards", 1) > 1:
-            print(f"  Active Shards            : {w_m['shards']}")
+            print(f"  Active Shards            : {w_m.get('shards', 1)}")
         print(
             f"  Operation Mix            : Limit: {w_m['limit_inserts_pct']}% | Market: {w_m['market_inserts_pct']}% | Cancel: {w_m['cancels_pct']}% | Modify: {w_m['modifies_pct']}%"
         )
+        sample_size = w_m.get("latency_sample_size", w_m["total_operations"])
         print(
-            f"  Latency Sample Size      : {w_m['latency_sample_size']:,} (reservoir sampled)"
+            f"  Latency Sample Size      : {sample_size:,} (reservoir sampled)"
         )
         print("\n[Throughput & Execution Metrics]")
         print(f"  Elapsed Time             : {exec_m['elapsed_seconds']} s")
@@ -195,12 +230,16 @@ def main(args: Optional[List[str]] = None) -> int:
             f"  Operations / Second (orders_per_second): {exec_m['orders_per_second']:,.2f} ops/sec"
         )
         print(f"  Total Trades Generated   : {exec_m['total_trades_generated']:,}")
-        print(f"  Average Matches / Order  : {exec_m['avg_matches_per_order']}")
-        print(f"  Successful Cancels       : {exec_m['successful_cancels']:,}")
-        print(f"  Successful Modifies      : {exec_m['successful_modifies']:,}")
-        print(
-            f"  Final Orderbook Depth    : {exec_m['final_orderbook_depth_levels']} active price levels"
-        )
+        if "avg_matches_per_order" in exec_m:
+            print(f"  Average Matches / Order  : {exec_m['avg_matches_per_order']}")
+        if "successful_cancels" in exec_m:
+            print(f"  Successful Cancels       : {exec_m['successful_cancels']:,}")
+        if "successful_modifies" in exec_m:
+            print(f"  Successful Modifies      : {exec_m['successful_modifies']:,}")
+        if "final_orderbook_depth_levels" in exec_m:
+            print(
+                f"  Final Orderbook Depth    : {exec_m['final_orderbook_depth_levels']} active price levels"
+            )
         print("\n[Latency Percentiles]")
         print(
             f"  P50 Median Latency       : {l_ns['p50_ns']:>8.1f} ns ({l_ns['p50_ns'] / 1000:>6.2f} µs)"
