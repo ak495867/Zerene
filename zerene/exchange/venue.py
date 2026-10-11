@@ -9,25 +9,37 @@ from zerene.risk.engine import RiskEngine
 from zerene.latency.gateway import LatencyGateway
 
 
+from zerene.exchange.fees import FeeSchedule
+from zerene.engine.circuit_breaker import CircuitBreaker
+
+
 class ExchangeVenue:
     """
     Simulated Exchange Venue hosting matching engines across multiple symbols.
-    Manages order ingestion, latency routing, fee schedules, and risk reconciliation.
+    Manages order ingestion, latency routing, fee schedules, circuit breakers, and risk reconciliation.
     """
 
     def __init__(
         self,
         venue_name: str = "ZERENE-X",
         symbols: Optional[List[str]] = None,
+        fee_schedule: Optional[FeeSchedule] = None,
         maker_fee_bps: float = -0.5,  # Maker rebate (-0.5 bps)
         taker_fee_bps: float = 2.0,  # Taker fee (+2.0 bps)
         risk_engine: Optional[RiskEngine] = None,
         latency_gateway: Optional[LatencyGateway] = None,
+        circuit_breaker_band_pct: float = 0.05,
     ):
         self.venue_name = venue_name
         self.engines: Dict[str, MatchingEngine] = {}
+        self.circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self.fee_schedule = fee_schedule or FeeSchedule(venue_name=venue_name)
+
         for sym in symbols or ["BTC-USD", "ETH-USD"]:
             self.engines[sym] = MatchingEngine(sym)
+            self.circuit_breakers[sym] = CircuitBreaker(
+                symbol=sym, band_pct=circuit_breaker_band_pct
+            )
 
         self.maker_fee_bps = maker_fee_bps
         self.taker_fee_bps = taker_fee_bps
@@ -35,9 +47,12 @@ class ExchangeVenue:
         self.latency_gateway = latency_gateway or LatencyGateway()
         self.risk_engine.on_kill_switch_callback = self.cancel_all_for_participant
 
-    def add_symbol(self, symbol: str) -> MatchingEngine:
+    def add_symbol(self, symbol: str, initial_ref_price: float = 100.0) -> MatchingEngine:
         if symbol not in self.engines:
             self.engines[symbol] = MatchingEngine(symbol)
+            self.circuit_breakers[symbol] = CircuitBreaker(
+                symbol=symbol, initial_reference_price=initial_ref_price
+            )
         return self.engines[symbol]
 
     def cancel_all_for_participant(
@@ -76,8 +91,21 @@ class ExchangeVenue:
             order.reject_reason = reject_reason
             return order, []
 
+        # Circuit breaker LULD collar check
+        cb = self.circuit_breakers.get(order.symbol)
+        if cb:
+            cb_ok, cb_err = cb.validate_order(order, current_time=order.timestamp)
+            if not cb_ok:
+                order.status = OrderStatus.REJECTED
+                order.reject_reason = cb_err
+                return order, []
+
         # Execute order in matching engine
         order, trades = engine.process_order(order)
+
+        # Update circuit breaker reference price on trade execution
+        if trades and cb:
+            cb.update_reference_price(trades[-1].price)
 
         # Post-trade risk reconciliation and fee attribution
         for trade in trades:

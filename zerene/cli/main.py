@@ -57,8 +57,14 @@ def main(args: Optional[List[str]] = None) -> int:
         "--format",
         type=str,
         default="text",
-        choices=["text", "json"],
-        help="Output format: text (human readable) or json (machine readable)",
+        choices=["text", "json", "html"],
+        help="Output format: text (human readable), json, or html (interactive visualizer report)",
+    )
+    bench_parser.add_argument(
+        "--output",
+        type=str,
+        default="benchmark_report.html",
+        help="Output filepath when --format html is selected",
     )
     bench_parser.add_argument(
         "--seed",
@@ -143,6 +149,14 @@ def main(args: Optional[List[str]] = None) -> int:
             import json
 
             print(json.dumps(results, indent=2))
+            return 0
+
+        if output_format == "html":
+            from zerene.benchmarks.visualizer import BenchmarkReportGenerator
+
+            out_file = getattr(parsed, "output", "benchmark_report.html")
+            BenchmarkReportGenerator.generate_html_report(results, out_file)
+            print(f"\n[+] Interactive HTML Benchmark Report generated at: {out_file}\n")
             return 0
 
         sys_m = results["system_metadata"]
