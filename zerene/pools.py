@@ -15,6 +15,7 @@ from zerene.models import (
     TimeInForce,
     EventType,
     STPMode,
+    get_next_internal_id,
 )
 from zerene.orderbook.level import Node
 
@@ -64,8 +65,6 @@ class OrderPool:
         if not self.pool:
             self._preallocate(1024)
 
-        from zerene.models import get_next_internal_id
-
         order = self.pool.popleft()
         order._in_pool = False
         order.internal_id = get_next_internal_id()
@@ -76,6 +75,7 @@ class OrderPool:
         order.order_type = order_type
         order.quantity = quantity
         order.price = price
+        order.price_ticks = int(round(price * 10000)) if price is not None else 0
         order.filled_quantity = 0.0
         order.display_quantity = (
             display_quantity if display_quantity is not None else quantity
@@ -151,8 +151,6 @@ class EventPool:
         if not self.pool:
             self._preallocate(1024)
 
-        from zerene.models import get_next_internal_id
-
         ev = self.pool.popleft()
         ev._in_pool = False
         ev.sequence_number = get_next_internal_id()
@@ -221,8 +219,6 @@ class TradePool:
     ) -> Trade:
         if not self.pool:
             self._preallocate(1024)
-
-        from zerene.models import get_next_internal_id
 
         trade = self.pool.popleft()
         trade._in_pool = False

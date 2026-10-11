@@ -83,6 +83,7 @@ class Order:
     order_type: OrderType
     quantity: float
     price: Optional[float] = None
+    price_ticks: int = 0  # Pre-computed fixed-point integer ticks (price * 10,000)
     filled_quantity: float = 0.0
     display_quantity: Optional[float] = None  # Visible tranche for Iceberg
     hidden_quantity: float = 0.0  # Remaining hidden tranche for Iceberg/Hidden
@@ -103,6 +104,8 @@ class Order:
     def __post_init__(self):
         if self.internal_id == 0:
             self.internal_id = get_next_internal_id()
+        if self.price is not None and self.price_ticks == 0 and math.isfinite(self.price):
+            self.price_ticks = int(round(self.price * 10000))
         # Initialize display and hidden quantities if not explicitly set
         if self.order_type == OrderType.ICEBERG:
             if self.display_quantity is None or self.display_quantity <= 0:

@@ -20,6 +20,8 @@ class TickDict(Dict[K, V]):
     """
 
     def _normalize_key(self, key):
+        if type(key) is int:
+            return key
         if isinstance(key, float):
             return int(round(key * 10000))
         return key
@@ -71,22 +73,25 @@ class OrderBook:
         """Inserts an order onto the book at its specified price level in O(log N)."""
         if order.price is None:
             return
-        price = round(order.price, 8) if isinstance(order.price, float) else order.price
-        order.price = price
-        price_ticks = (
-            int(round(price * 10000)) if isinstance(price, float) else int(price)
-        )
+        price_ticks = order.price_ticks
+        if price_ticks == 0 and order.price is not None:
+            price_ticks = int(round(order.price * 10000))
+            order.price_ticks = price_ticks
 
         if order.side == Side.BUY:
-            if price_ticks not in self.bids:
-                self.bids[price_ticks] = PriceLevel(price)
+            level = self.bids.get(price_ticks)
+            if level is None:
+                level = PriceLevel(order.price)
+                self.bids[price_ticks] = level
                 self.sorted_bids.add(price_ticks)
-            self.bids[price_ticks].append(order)
+            level.append(order)
         else:
-            if price_ticks not in self.asks:
-                self.asks[price_ticks] = PriceLevel(price)
+            level = self.asks.get(price_ticks)
+            if level is None:
+                level = PriceLevel(order.price)
+                self.asks[price_ticks] = level
                 self.sorted_asks.add(price_ticks)
-            self.asks[price_ticks].append(order)
+            level.append(order)
 
         self.order_map[order.order_id] = order
         self._order_map_int[order.internal_id] = order
@@ -100,11 +105,9 @@ class OrderBook:
         if order.price is None:
             return order
 
-        price_ticks = (
-            int(round(order.price * 10000))
-            if isinstance(order.price, float)
-            else int(order.price)
-        )
+        price_ticks = order.price_ticks
+        if price_ticks == 0:
+            price_ticks = int(round(order.price * 10000))
         if order.side == Side.BUY and price_ticks in self.bids:
             level = self.bids[price_ticks]
             level.remove(order)
