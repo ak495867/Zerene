@@ -60,6 +60,12 @@ def main(args: Optional[List[str]] = None) -> int:
         choices=["text", "json"],
         help="Output format: text (human readable) or json (machine readable)",
     )
+    bench_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Deterministic random seed for reproducible benchmark execution",
+    )
 
     # Command: inspect
     inspect_parser = subparsers.add_parser(
@@ -67,6 +73,22 @@ def main(args: Optional[List[str]] = None) -> int:
     )
     inspect_parser.add_argument(
         "--symbol", type=str, default="BTC-USD", help="Symbol to inspect"
+    )
+
+    # Command: calibrate
+    calib_parser = subparsers.add_parser(
+        "calibrate",
+        help="Calibrate Hawkes parameters and verify stylized facts on real tick data",
+    )
+    calib_parser.add_argument(
+        "--file", type=str, required=True, help="Path to real exchange tick CSV file"
+    )
+    calib_parser.add_argument(
+        "--format",
+        type=str,
+        default="binance",
+        choices=["binance", "l3"],
+        help="Data feed format",
     )
 
     parsed = parser.parse_args(args)
@@ -86,30 +108,35 @@ def main(args: Optional[List[str]] = None) -> int:
     elif parsed.command == "benchmark":
         output_format = getattr(parsed, "format", "text")
         verbose_flag = output_format == "text"
+        bench_seed = getattr(parsed, "seed", 42)
 
         if getattr(parsed, "shards", 1) > 1:
             if verbose_flag:
                 print(
-                    f"\n[+] Running ZERENE Sharded Institutional Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload)...\n"
+                    f"\n[+] Running ZERENE Sharded Institutional Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload, seed={bench_seed})...\n"
                 )
             from zerene.benchmarks.sharded_runner import ShardedBenchmarkRunner
 
             sharded_runner = ShardedBenchmarkRunner(
-                base_symbol=parsed.symbol, num_shards=parsed.shards
+                base_symbol=parsed.symbol, num_shards=parsed.shards, seed=bench_seed
             )
             results = sharded_runner.run(
                 total_orders=parsed.orders,
                 workload=parsed.workload,
                 verbose=verbose_flag,
+                seed=bench_seed,
             )
         else:
             if verbose_flag:
                 print(
-                    f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol})...\n"
+                    f"\n[+] Running ZERENE Institutional Benchmark across {parsed.orders:,} operations ({parsed.workload} workload on {parsed.symbol}, seed={bench_seed})...\n"
                 )
-            single_runner = BenchmarkRunner(parsed.symbol)
+            single_runner = BenchmarkRunner(parsed.symbol, seed=bench_seed)
             results = single_runner.run(
-                num_orders=parsed.orders, workload=parsed.workload, verbose=verbose_flag
+                num_orders=parsed.orders,
+                workload=parsed.workload,
+                verbose=verbose_flag,
+                seed=bench_seed,
             )
 
         if output_format == "json":
@@ -225,6 +252,74 @@ def main(args: Optional[List[str]] = None) -> int:
             print(f"  ${p:>8.2f}  |  {v:>8.2f} qty")
         print("--- BIDS (Highest to Lowest) ---")
         print("==================================================")
+
+    elif parsed.command == "calibrate":
+        from zerene.calibration import (
+            BinanceDataParser,
+            HawkesCalibrator,
+            ImpactCalibrator,
+            StylizedFactsEvaluator,
+        )
+
+        print(f"\n[+] Loading tick data from {parsed.file} ({parsed.format} format)...")
+        if parsed.format == "binance":
+            ticks = list(BinanceDataParser.parse_trades_csv(parsed.file))
+        else:
+            raise NotImplementedError(
+                f"Format {parsed.format} calibration pipeline coming soon."
+            )
+
+        print(
+            f"[+] Loaded {len(ticks):,} ticks. Fitting Hawkes process arrival dynamics..."
+        )
+        timestamps = [t.timestamp for t in ticks]
+        hawkes_fit = HawkesCalibrator.fit(timestamps)
+
+        print(f"[+] Calibrating Kyle's Lambda price impact...")
+        impact_fit = ImpactCalibrator.fit_kyles_lambda(ticks)
+
+        print(f"[+] Evaluating empirical stylized facts...")
+        prices = [t.price for t in ticks]
+        report = StylizedFactsEvaluator.evaluate_prices(prices)
+
+        print(
+            "\n======================================================================"
+        )
+        print("                 ZERENE EMPIRICAL CALIBRATION REPORT                 ")
+        print("======================================================================")
+        print(
+            f" Data Observations:             {hawkes_fit.n_events:,} events over {hawkes_fit.duration:.2f}s"
+        )
+        print("\n 1. HAWKES PROCESS ARRIVAL DYNAMICS (MLE)")
+        print(f"    - Baseline Rate (mu):       {hawkes_fit.mu:.4f} events/sec")
+        print(f"    - Self-Excitation (alpha):  {hawkes_fit.alpha:.4f}")
+        print(f"    - Decay Rate (beta):        {hawkes_fit.beta:.4f}")
+        print(
+            f"    - Branching Ratio (a/b):    {hawkes_fit.branching_ratio:.4f} (< 1.0 stationary)"
+        )
+        print(f"    - Log-Likelihood:           {hawkes_fit.log_likelihood:.2f}")
+
+        print("\n 2. PRICE IMPACT (KYLE'S LAMBDA)")
+        print(f"    - Fitted Lambda:            {impact_fit.lambda_param:.8f} $/unit")
+        print(f"    - Goodness of Fit (R^2):    {impact_fit.r_squared:.4f}")
+        print(f"    - Mean Absolute Error:      {impact_fit.mean_abs_error:.4f}")
+
+        print("\n 3. EMPIRICAL STYLIZED FACTS CHECK")
+        print(
+            f"    - Excess Kurtosis (Heavy Tails):    {report.excess_kurtosis:+.4f} (Pass: {report.has_heavy_tails})"
+        )
+        print(
+            f"    - Volatility Clustering (Corr):     {report.volatility_clustering_lag1_corr:+.4f} (Pass: {report.has_volatility_clustering})"
+        )
+        print(
+            f"    - Bid-Ask Bounce (Lag-1 Autocorr):  {report.return_autocorr_lag1:+.4f} (Pass: {report.has_bid_ask_bounce})"
+        )
+        print(
+            f"    - Overall Microstructure Realism:   {'VALIDATED' if report.is_realistic else 'REJECTED'}"
+        )
+        print(
+            "======================================================================\n"
+        )
 
     return 0
 

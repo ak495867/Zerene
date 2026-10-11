@@ -27,12 +27,12 @@ class LatencyGateway:
         self.engine = engine_model or DeterministicLatency(0.0001)
         self.net_out = net_out_model or DeterministicLatency(0.001)
 
-        self.inbound_queue: List[
-            Tuple[float, int, OrderEvent]
-        ] = []  # Events destined for Matching Engine
-        self.outbound_queue: List[
-            Tuple[float, int, OrderEvent]
-        ] = []  # Events destined for Clients
+        self.inbound_queue: List[Tuple[float, int, OrderEvent]] = (
+            []
+        )  # Events destined for Matching Engine
+        self.outbound_queue: List[Tuple[float, int, OrderEvent]] = (
+            []
+        )  # Events destined for Clients
         self._seq_counter: int = 0
 
     def submit_inbound(self, event: OrderEvent) -> bool:

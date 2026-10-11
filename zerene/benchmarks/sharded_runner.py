@@ -9,30 +9,42 @@ from zerene.benchmarks.runner import BenchmarkRunner
 
 
 def _run_shard(
-    shard_id: int, symbol: str, num_orders: int, workload: str, verbose: bool = True
+    shard_id: int,
+    symbol: str,
+    num_orders: int,
+    workload: str,
+    verbose: bool = True,
+    seed: int = 42,
 ) -> Dict[str, Any]:
     """
     Worker function to run a completely isolated matching engine in its own process.
     """
-    runner = BenchmarkRunner(symbol)
-    result = runner.run(num_orders=num_orders, workload=workload, verbose=False)
+    runner = BenchmarkRunner(symbol, seed=seed)
+    result = runner.run(
+        num_orders=num_orders, workload=workload, verbose=False, seed=seed
+    )
     if verbose:
         print(f"  [shard-{shard_id}] Finished {num_orders:,} operations on {symbol}!")
     return result
 
 
 class ShardedBenchmarkRunner:
-    def __init__(self, base_symbol: str = "SHARD-USD", num_shards: int = 4):
+    def __init__(
+        self, base_symbol: str = "SHARD-USD", num_shards: int = 4, seed: int = 42
+    ):
         self.base_symbol = base_symbol
         self.num_shards = num_shards
+        self.seed = seed
 
     def run(
         self,
         total_orders: int = 100_000,
         workload: str = "realistic",
         verbose: bool = True,
+        seed: int = 42,
     ) -> Dict[str, Any]:
         orders_per_shard = total_orders // self.num_shards
+        effective_seed = seed if seed is not None else self.seed
 
         symbols = [f"{self.base_symbol}-{i}" for i in range(self.num_shards)]
 
@@ -45,8 +57,10 @@ class ShardedBenchmarkRunner:
         with mp.Pool(processes=self.num_shards) as pool:
             results = []
             for i, symbol in enumerate(symbols):
+                shard_seed = effective_seed + i
                 res = pool.apply_async(
-                    _run_shard, (i, symbol, orders_per_shard, workload, verbose)
+                    _run_shard,
+                    (i, symbol, orders_per_shard, workload, verbose, shard_seed),
                 )
                 results.append(res)
 
@@ -100,6 +114,7 @@ class ShardedBenchmarkRunner:
             "workload_metadata": {
                 "symbol": f"{self.base_symbol}-Multi",
                 "workload_mode": workload,
+                "seed": effective_seed,
                 "total_operations": total_ops,
                 "shards": self.num_shards,
                 "limit_inserts_pct": completed_results[0]["workload_metadata"][

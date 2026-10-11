@@ -36,15 +36,19 @@ class BenchmarkRunner:
     instruction lists), so memory usage stays bounded regardless of total operation count.
     """
 
-    def __init__(self, symbol: str = "BENCH-USD"):
+    def __init__(self, symbol: str = "BENCH-USD", seed: Optional[int] = None):
         self.symbol = symbol
+        self.seed = seed
 
     def run(
         self,
         num_orders: int = 100_000,
         workload: str = "realistic",
         verbose: bool = True,
+        seed: Optional[int] = None,
     ) -> Dict[str, Any]:
+        effective_seed = seed if seed is not None else self.seed
+        rng = random.Random(effective_seed)
         engine = MatchingEngine(self.symbol)
 
         # Pre-seed resting order book across 250 price levels on each side
@@ -106,7 +110,7 @@ class BenchmarkRunner:
 
             # Determine operation type
             if workload == "realistic":
-                r = random.random()
+                r = rng.random()
                 if r < 0.45:
                     op_type = 0  # LIMIT
                 elif r < 0.70:
@@ -130,29 +134,29 @@ class BenchmarkRunner:
                     side=side,
                     order_type=OrderType.MARKET,
                     price=0.0,
-                    quantity=round(random.uniform(1.0, 25.0), 2),
+                    quantity=round(rng.uniform(1.0, 25.0), 2),
                     timestamp=float(i),
                     owner_id="BENCH_TAKER",
                 )
                 engine.process_order(o)
             elif op_type == 2 and active_resting_ids:
                 cancel_count += 1
-                target_id = random.choice(active_resting_ids)
+                target_id = rng.choice(active_resting_ids)
                 if engine.cancel_order(target_id):
                     actual_cancels += 1
             elif op_type == 3 and active_resting_ids:
                 modify_count += 1
-                target_id = random.choice(active_resting_ids)
-                new_qty = round(random.uniform(10.0, 500.0), 2)
-                new_price = round(100.0 + random.uniform(-1.0, 1.0), 2)
+                target_id = rng.choice(active_resting_ids)
+                new_qty = round(rng.uniform(10.0, 500.0), 2)
+                new_price = round(100.0 + rng.uniform(-1.0, 1.0), 2)
                 if engine.modify_order(target_id, new_qty, new_price):
                     actual_modifies += 1
             else:
                 limit_count += 1
                 price_offset = (
-                    random.uniform(-0.5, 0.5)
+                    rng.uniform(-0.5, 0.5)
                     if workload == "realistic"
-                    else random.uniform(-2.0, 2.0)
+                    else rng.uniform(-2.0, 2.0)
                 )
                 price = round(100.0 + price_offset, 2)
                 o = GLOBAL_ORDER_POOL.acquire(
@@ -162,7 +166,7 @@ class BenchmarkRunner:
                     side=side,
                     order_type=OrderType.LIMIT,
                     price=price,
-                    quantity=round(random.uniform(5.0, 50.0), 2),
+                    quantity=round(rng.uniform(5.0, 50.0), 2),
                     timestamp=float(i),
                     owner_id="BENCH_TAKER",
                 )
@@ -172,7 +176,7 @@ class BenchmarkRunner:
                     active_resting_ids.append(o.order_id)
                 else:
                     # Replace a random existing entry (reservoir-style)
-                    active_resting_ids[random.randint(0, _MAX_RESTING_TRACKER - 1)] = (
+                    active_resting_ids[rng.randint(0, _MAX_RESTING_TRACKER - 1)] = (
                         o.order_id
                     )
 
@@ -189,7 +193,7 @@ class BenchmarkRunner:
                 latency_samples.append(lat)
             else:
                 # Reservoir replacement with decreasing probability
-                j = random.randint(0, i)
+                j = rng.randint(0, i)
                 if j < _MAX_LATENCY_SAMPLES:
                     latency_samples[j] = lat
 
@@ -232,6 +236,7 @@ class BenchmarkRunner:
             "workload_metadata": {
                 "symbol": self.symbol,
                 "workload_mode": workload,
+                "seed": effective_seed,
                 "total_operations": total_ops,
                 "limit_inserts_pct": round((limit_count / max(1, total_ops)) * 100, 1),
                 "market_inserts_pct": round(
