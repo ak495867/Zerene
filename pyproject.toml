@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zerene"
-version = "0.1.0"
+version = "0.2.0"
 description = "Institutional-Grade Market Microstructure Research & Simulation Platform"
 readme = "README.md"
 authors = [

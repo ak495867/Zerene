@@ -200,12 +200,18 @@ and invalid stop prices are rejected with a stable `Order.reject_reason`; no ord
 inserted into the book. Internal pooled placeholder objects remain available for the
 benchmark hot path because validation is deliberately enforced at the public venue boundary.
 
-### Recommended next improvements
+### 9. Empirical Data Calibration & Stylized Facts (`zerene.calibration`)
+Don't guess arrival parameters or price impact numbers. ZERENE comes equipped with empirical estimators:
+* **Hawkes MLE Estimator**: Fits baseline arrival rate $\mu$, self-excitation $\alpha$, and exponential decay $\beta$ from real exchange tick arrival times using Ozaki's exact recursive log-likelihood.
+* **Kyle's Lambda & Square-Root Impact Fitting**: Calibrates price impact coefficients directly against historical execution streams.
+* **Stylized Facts Verification**: Rigorously tests simulation outputs for heavy tails (excess kurtosis $> 0.5$), volatility clustering ($\text{Corr}(|r_t|, |r_{t-1}|) > 0.05$), and bid-ask bounce ($\text{Corr}(r_t, r_{t-1}) < -0.02$).
+* **Exchange Parsers**: Direct ingest of Binance public trade data and Level 3 order-by-order archives.
 
-For production research workloads, the next high-value improvements are deterministic
-event-log replay, configurable tick and lot-size rules per symbol, property-based testing
-of matching invariants, and benchmark baselines tracked across commits. These build on the
-current FIFO engine without changing its public order lifecycle.
+### 10. Institutional Circuit Breakers & Reactive Liquidity (`circuit_breaker.py`, `adverse_selection.py`)
+* **LULD Price Collars**: SEC Rule 613-style dynamic price bands clamp aggressive orders outside allowable reference thresholds and trigger volatility pauses on sustained breaches.
+* **Tiered Maker Rebates**: Models real VIP fee schedules where market makers harvest negative maker fees (rebates) and takers pay tiered surcharges.
+* **Adverse Selection Agent**: Background market makers defensively evaporate passive liquidity and widen spreads in response to large aggressive block sweeps.
+* **Interactive HTML Visualizer**: Run `zerene benchmark --format html` to render self-contained latency percentiles and throughput dashboards.
 
 ---
 
