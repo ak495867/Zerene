@@ -7,6 +7,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](license.md)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![C++ Standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
 [![CI](https://github.com/ak495867/Zerene/actions/workflows/python-ci.yml/badge.svg)](https://github.com/ak495867/Zerene/actions/workflows/python-ci.yml)
 [![Standalone OSS](https://img.shields.io/badge/Standalone%20OSS-GitHub-purple.svg)](https://github.com/ak495867)
 [![Author: ak495867](https://img.shields.io/badge/Author-ak495867-6200ea.svg)](https://github.com/ak495867)
@@ -41,6 +42,7 @@ Instead of predicting where the price goes (leaving that to finance influencers 
 |   |  Real-Time Risk Engine   |               |   Matching Engine (FIFO)   |   |
 |   |  - O(1) Running Exposure | <-----------> |   - Doubly-Linked Lists    |   |
 |   |  - Automated Kill Switch |               |   - Integer Tick B-Trees   |   |
+|   |  - LULD Price Collars    |               |   - C++20 Direct Arena LOB |   |
 |   +--------------------------+               +----------------------------+   |
 +---------------------------------------^---------------------------------------+
                                         |
@@ -79,62 +81,16 @@ Synthetic flow shouldn't just be random `random.uniform()` spam that makes your 
 ### 7. Transparent, Standardized Institutional Benchmarking (`--workload realistic`)
 We don't make unsubstantiated performance claims. In quantitative systems engineering, throughput numbers only matter when the methodology and workload friction are completely transparent.
 By running `python -m zerene benchmark --orders 100000 --workload realistic`, ZERENE outputs a complete **Institutional Benchmark Report** that exposes the exact characteristics of the simulation run right alongside latency percentiles and system setup:
-* **Exchange-Realistic Operation Mix**: **44.7% Limit Inserts, 25.1% Market Sweeps, 20.1% Cancellations (`cancel_order`), and 10.1% Modifications (`modify_order`)**.
-* **High Execution Crossing Regime**: Limit orders are centered around the inside spread (`±$0.50`), driving frequent partial/full fills (`~0.96 matches per order`) rather than artificially resting on a passive book.
-* **Defensible CPython Performance**: ZERENE maintains **`33,000 – 67,000 operations/sec`** with **`12.2µs – 16.5µs` median fills** in single-threaded interpreted CPython (`3.14`)—approaching the upper performance tier commonly achieved in pure Python without Cython/Numba C-extensions. Moreover, our core architecture (`intrusive doubly-linked queues + fixed-point B-Trees + object pooling`) scales directly into C++/Rust whenever you need millions of messages per second.
+* **Exchange-Realistic Operation Mix**: **45.0% Limit Inserts, 25.0% Market Sweeps, 20.0% Cancellations (`cancel_order`), and 10.0% Modifications (`modify_order`)**.
+* **High Execution Crossing Regime**: Limit orders are centered around the inside spread (`±$0.50`), driving frequent partial/full fills (`~0.46 matches per order`) rather than artificially resting on a passive book.
+* **Defensible CPython Performance**: ZERENE maintains **`35,000 – 80,000 operations/sec`** with **`10.4µs – 16.5µs` median fills** in single-threaded interpreted CPython (`3.14`).
 
 ### 8. Breaking the Python Speed Limit (Multi-Process Sharding)
 "Can we just use threads to make it faster?" No. In Python, the Global Interpreter Lock (GIL) means `threading` will just add context-switching overhead and actually slow you down. Furthermore, multi-threading a single order book destroys deterministic FIFO causality and requires lock-heavy data structures.
-* **Our Solution**: ZERENE scales the exact way real institutional exchanges do: **Symbol Sharding**. By launching completely isolated `MatchingEngine` instances across independent processes pinned to separate CPU cores (e.g., Core 1 runs `BTC-USD`, Core 2 runs `ETH-USD`), ZERENE bypasses the GIL entirely. This achieves **perfect linear scaling**, allowing the pure Python engine to shatter the 100,000 operations/sec barrier.
+* **Our Solution**: ZERENE scales the exact way real institutional exchanges do: **Symbol Sharding**. By launching completely isolated `MatchingEngine` instances across independent processes pinned to separate CPU cores (e.g., Core 1 runs `BENCH-USD-1`, Core 2 runs `BENCH-USD-2`), ZERENE bypasses the GIL entirely. This achieves **perfect linear scaling**, allowing the pure Python engine to shatter the 100,000 operations/sec barrier (`--shards 4`).
 
-```
-
-[+] Running ZERENE Sharded Institutional Benchmark across 1,000,000 operations (4 shards, realistic workload)...
-
-  [sharded] Booting 4 independent processes (1 core per matching engine)...
-  [shard-3] Finished 250,000 operations on BENCH-USD-3!
-  [shard-2] Finished 250,000 operations on BENCH-USD-2!
-  [shard-1] Finished 250,000 operations on BENCH-USD-1!
-  [shard-0] Finished 250,000 operations on BENCH-USD-0!
-
-======================================================================
-                 ZERENE INSTITUTIONAL BENCHMARK REPORT                
-======================================================================
-[System Environment]
-  Platform                 : Windows-11-10.0.26200-SP0
-  Python Version           : 3.14.5
-  CPU Processor            : AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD
-  Execution Mode           : Multi-Process Sharded (4 cores)
-  Garbage Collector        : Enabled
-
-[Workload Configuration]
-  Target Symbol            : BENCH-USD-Multi
-  Workload Mode            : REALISTIC
-  Total Operations         : 1,000,000
-  Active Shards            : 4
-  Operation Mix            : Limit: 45.0% | Market: 25.1% | Cancel: 20.0% | Modify: 9.9%
-  Latency Sample Size      : 1,000,000 (reservoir sampled)
-
-[Throughput & Execution Metrics]
-  Elapsed Time             : 9.5808 s
-  Operations / Second (orders_per_second): 104,374.92 ops/sec
-  Total Trades Generated   : 673,056
-  Average Matches / Order  : 0.96
-  Successful Cancels       : 10,342
-  Successful Modifies      : 99,918
-  Final Orderbook Depth    : 512 active price levels
-
-[Latency Percentiles]
-  P50 Median Latency       :  23325.0 ns ( 23.32 µs)
-  P90 Latency              :  56800.0 ns ( 56.80 µs)
-  P99 Latency              : 114550.0 ns (114.55 µs)
-  P99.9 Latency            : 1251275.0 ns (1251.28 µs)
-  Max Worst-Case Latency   : 36874500.0 ns (36874.50 µs)
-======================================================================
-```
-
-### 9. Ultra-Fast C++20 Core & Native Accelerator (15M+ Ops/Sec) 🚀
-When you need to stream tens of millions of market orders across institutional HFT simulation regimes, Python bytecode execution becomes the ultimate bottleneck. ZERENE includes a production-grade, zero-allocation **C++20 matching engine core** (`src/zerene_core/`):
+### 9. Ultra-Fast C++20 Core & Native Accelerator (15.58M Ops/Sec) 🚀
+When you need to stream tens of millions of market orders across institutional HFT simulation regimes, Python interpreter overhead becomes the ultimate bottleneck. ZERENE includes a production-grade, zero-allocation **C++20 matching engine core** (`src/zerene_core/`):
 * **Cache-Aligned 64-Byte Order Structs**: `alignas(64)` matching L1 CPU cache lines, eliminating false sharing and optimizing CPU prefetch buffers.
 * **Intrusive Doubly-Linked Queues**: Strict $O(1)$ order insertion, FIFO head pop, and arbitrary cancellation without heap node wrappers.
 * **Direct Array Price Arena**: 65,536 contiguous price buckets providing instant $O(1)$ array indexing for inside spread updates with map fallback for extreme outliers.
@@ -142,7 +98,7 @@ When you need to stream tens of millions of market orders across institutional H
 * **Seamless Pybind11 Integration**: The compiled extension (`zerene_cpp_core`) plugs directly into Python with zero-overhead native execution and automatic graceful fallback to pure Python if compiled binaries are absent.
 
 ```bash
-# Run 10 Million orders through the C++20 core via CLI
+# Run 10 Million operations through the C++20 core via CLI
 python -m zerene benchmark --orders 10000000 --engine cpp
 ```
 
@@ -182,6 +138,32 @@ python -m zerene benchmark --orders 10000000 --engine cpp
 ======================================================================
 ```
 
+### 10. Empirical Data Calibration & Stylized Facts (`zerene.calibration`)
+Don't guess arrival parameters or price impact numbers. ZERENE comes equipped with empirical estimators:
+* **Hawkes MLE Estimator**: Fits baseline arrival rate $\mu$, self-excitation $\alpha$, and exponential decay $\beta$ from real exchange tick arrival times using Ozaki's exact recursive log-likelihood.
+* **Kyle's Lambda & Square-Root Impact Fitting**: Calibrates price impact coefficients directly against historical execution streams.
+* **Stylized Facts Verification**: Rigorously tests simulation outputs for heavy tails (excess kurtosis $> 0.5$), volatility clustering ($\text{Corr}(|r_t|, |r_{t-1}|) > 0.05$), and bid-ask bounce ($\text{Corr}(r_t, r_{t-1}) < -0.02$).
+* **Exchange Parsers**: Direct ingest of Binance public trade data and Level 3 order-by-order archives.
+
+```bash
+python -m zerene calibrate --file path/to/ticks.csv --format binance
+```
+
+### 11. Institutional Circuit Breakers & Reactive Liquidity (`circuit_breaker.py`, `adverse_selection.py`)
+* **LULD Price Collars**: SEC Rule 613-style dynamic price bands clamp aggressive orders outside allowable reference thresholds and trigger volatility pauses on sustained breaches.
+* **Tiered Maker Rebates**: Models real VIP fee schedules where market makers harvest negative maker fees (rebates) and takers pay tiered surcharges.
+* **Adverse Selection Agent**: Background market makers defensively evaporate passive liquidity and widen spreads in response to large aggressive block sweeps.
+
+### 12. Interactive HTML & SVG Visualizer Dashboard (`--format html`)
+Generate standalone, zero-dependency interactive HTML reports with nanosecond latency distribution histograms (log-scale with P50/P90/P99 markers), workload breakdown donuts, and throughput gauges:
+
+```bash
+python -m zerene benchmark --orders 100000 --format html --output benchmark_report.html
+```
+
+### 13. Public Venue Boundary Order Validation (`validation.py`)
+Orders submitted through `ExchangeVenue.submit_order()` are validated before risk checks or matching. Invalid identifiers, non-positive or non-finite quantities, invalid prices, and invalid stop prices are rejected with a stable `Order.reject_reason`; no corrupt orders ever pollute the book.
+
 ---
 
 ## Quick Start ⚡
@@ -193,31 +175,73 @@ ZERENE is built as a **standalone open-source project on GitHub** under `ak49586
 git clone https://github.com/ak495867/zerene.git
 cd zerene
 
-# Install in editable mode with development dependencies
+# Install in editable mode with development & analytics dependencies
 pip install -e .[dev,analytics]
 
 # Run the 63-test institutional verification suite (under 1.5 seconds)
 pytest -v tests/
 ```
 
-### Run a Transparent Institutional Benchmark & Simulation Right Away
+### Command-Line Interface (CLI) Cheat Sheet
 
 ```bash
-# Measure realistic multi-workload execution (inserts, cancels, modifies, crossings) and system metadata
-python -m zerene benchmark --orders 50000 --workload realistic --symbol BTC-USD
+# 1. Ultra-fast native C++20 benchmark (10 Million operations in <0.7s)
+python -m zerene benchmark --orders 10000000 --engine cpp
 
-# Run a multi-step simulation with live strategies
+# 2. Multi-core symbol-sharded institutional benchmark (4 parallel matching engines)
+python -m zerene benchmark --orders 1000000 --shards 4
+
+# 3. Interactive HTML & SVG visualizer report
+python -m zerene benchmark --orders 100000 --format html --output report.html
+
+# 4. JSON machine-readable output for CI/CD performance regression gates
+python -m zerene benchmark --orders 100000 --format json
+
+# 5. Run discrete-event simulation with live market makers & Hawkes flows
 python -m zerene sim --symbols BTC-USD,ETH-USD --steps 500
+
+# 6. Inspect seeded limit order book structure & inside spread
+python -m zerene inspect --symbol BTC-USD
+
+# 7. Calibrate Hawkes process & verify stylized facts on real tick data
+python -m zerene calibrate --file my_ticks.csv --format binance
 ```
 
 ---
 
-## Programmatic Execution Example 💻
+## Building the Native C++20 Core ⚙️
 
-Here's how to wire up an institutional simulation with a live market maker and quantitative analytics report. The garbage collector may still run (it's Python, not a miracle), but at least it won't have 50,000 orphaned `Order` objects to cry about:
+The native C++ matching engine is completely optional—ZERENE runs 100% out-of-the-box in pure Python. To unlock the **15M+ ops/sec** accelerator, compile the pybind11 extension:
 
+### Automatic Build via Pip
+```bash
+pip install -e .
+```
+
+### Manual Compilation with GCC / Clang (MinGW / Linux / macOS)
+```bash
+# MinGW / GCC / Clang
+g++ -O3 -march=native -std=c++20 -shared -static -static-libgcc -static-libstdc++ \
+    -Isrc/zerene_core \
+    $(python3 -m pybind11 --includes) \
+    src/zerene_core/bindings.cpp \
+    -o zerene/zerene_cpp_core$(python3-config --extension-suffix)
+```
+
+### Standalone C++ Benchmark (Without Python)
+```bash
+cd src/zerene_core
+cmake -B build
+cmake --build build --config Release
+./build/zerene_bench
+```
+
+---
+
+## Programmatic Execution Examples 💻
+
+### 1. Market Simulation with Live Avellaneda-Stoikov Market Maker
 ```python
-from zerene.models import Order, Side, OrderType
 from zerene.exchange.venue import ExchangeVenue
 from zerene.strategies.market_maker import MarketMakerStrategy
 from zerene.simulator.market_sim import MarketSimulator
@@ -241,26 +265,42 @@ print(f"Total Steps: {report.total_steps} | Total Trades: {report.total_trades}"
 print(f"Total Volume: {report.total_volume:.2f} | Execution Quality: {report.summary()}")
 ```
 
-### Order-entry validation
+### 2. Direct High-Speed C++ Matching Core Execution
+```python
+from zerene.engine.c_accelerator import NativeMatchingAccelerator
 
-Orders submitted through `ExchangeVenue.submit_order()` are validated before risk checks
-or matching. Invalid identifiers, non-positive or non-finite quantities, invalid prices,
-and invalid stop prices are rejected with a stable `Order.reject_reason`; no order is
-inserted into the book. Internal pooled placeholder objects remain available for the
-benchmark hot path because validation is deliberately enforced at the public venue boundary.
+if NativeMatchingAccelerator.is_available():
+    mod = NativeMatchingAccelerator.get_core()
+    engine = mod.MatchingEngineCore("BTC-USD", 50_000_0000)  # anchor at $50,000
 
-### 9. Empirical Data Calibration & Stylized Facts (`zerene.calibration`)
-Don't guess arrival parameters or price impact numbers. ZERENE comes equipped with empirical estimators:
-* **Hawkes MLE Estimator**: Fits baseline arrival rate $\mu$, self-excitation $\alpha$, and exponential decay $\beta$ from real exchange tick arrival times using Ozaki's exact recursive log-likelihood.
-* **Kyle's Lambda & Square-Root Impact Fitting**: Calibrates price impact coefficients directly against historical execution streams.
-* **Stylized Facts Verification**: Rigorously tests simulation outputs for heavy tails (excess kurtosis $> 0.5$), volatility clustering ($\text{Corr}(|r_t|, |r_{t-1}|) > 0.05$), and bid-ask bounce ($\text{Corr}(r_t, r_{t-1}) < -0.02$).
-* **Exchange Parsers**: Direct ingest of Binance public trade data and Level 3 order-by-order archives.
+    # Place resting limit buy: $49,990 (499900000 ticks)
+    engine.process_order_fast(101, mod.Side.BUY, mod.OrderType.LIMIT, 499900000, 2.5)
 
-### 10. Institutional Circuit Breakers & Reactive Liquidity (`circuit_breaker.py`, `adverse_selection.py`)
-* **LULD Price Collars**: SEC Rule 613-style dynamic price bands clamp aggressive orders outside allowable reference thresholds and trigger volatility pauses on sustained breaches.
-* **Tiered Maker Rebates**: Models real VIP fee schedules where market makers harvest negative maker fees (rebates) and takers pay tiered surcharges.
-* **Adverse Selection Agent**: Background market makers defensively evaporate passive liquidity and widen spreads in response to large aggressive block sweeps.
-* **Interactive HTML Visualizer**: Run `zerene benchmark --format html` to render self-contained latency percentiles and throughput dashboards.
+    # Place resting limit sell: $50,010 (500100000 ticks)
+    engine.process_order_fast(201, mod.Side.SELL, mod.OrderType.LIMIT, 500100000, 3.0)
+
+    # Aggressive market sweep: BUY 1.5 BTC
+    matched_trades = engine.process_order_fast(301, mod.Side.BUY, mod.OrderType.MARKET, 0, 1.5)
+    print(f"Matched {matched_trades} trades! Best Ask: {engine.best_ask_ticks() / 10000.0}")
+```
+
+### 3. Training Reinforcement Learning Agents (Gymnasium)
+```python
+from zerene.strategies.rl_env import RLTradingEnvironment
+
+# Instantiate OpenAI Gymnasium-compatible market making environment
+env = RLTradingEnvironment(symbol="BTC-USD", max_inventory=10, episode_length=500)
+obs, info = env.reset(seed=42)
+
+for step in range(500):
+    # Action: [spread_ticks_multiplier, skew_bias]
+    action = [1.0, 0.0]
+    obs, reward, terminated, truncated, info = env.step(action)
+    if terminated or truncated:
+        break
+
+print(f"Episode PnL: {info['realized_pnl']} | Final Inventory: {info['inventory']}")
+```
 
 ---
 

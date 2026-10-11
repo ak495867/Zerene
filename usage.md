@@ -13,6 +13,7 @@ This guide walks you through every major workflow in **ZERENE**—from running c
 6. [Real-Time Risk Engine & Automated Kill-Switch](#6-real-time-risk-engine--automated-kill-switch)
 7. [Training RL Agents with Gymnasium (`RLTradingEnvironment`)](#7-training-rl-agents-with-gymnasium-rltradingenvironment)
 8. [Simulating Macro Shocks (Flash Crashes & News Surprises)](#8-simulating-macro-shocks-flash-crashes--news-surprises)
+9. [Direct Native C++ Core Execution (15M+ ops/sec)](#9-direct-native-c-core-execution-15m-opssec)
 
 ---
 
@@ -20,28 +21,53 @@ This guide walks you through every major workflow in **ZERENE**—from running c
 
 ZERENE comes with a direct CLI module (`zerene.cli.main`) to benchmark engine throughput and run rapid simulation loops right from your terminal.
 
-### Run High-Speed Sharded Engine Benchmark
-Want to see what zero-allocation memory pooling and fixed-point integer indexing (`10,000` scale) look like in action? Run this benchmark and watch ZERENE chew through 1,000,000 operations—including cancels, modifies, and crossings—in the time it takes your old backtester to `import matplotlib` and render a single candlestick chart that nobody asked for. 
+### 1. Ultra-Fast Native C++20 Core Benchmark (15M+ ops/sec)
+Run 10,000,000 operations directly through the zero-allocation C++ matching core with cache-aligned 64-byte orders and direct arena limit order book:
 
-By passing `--shards 4`, ZERENE scales linearly by spinning up completely isolated matching engines across 4 CPU cores, shattering the 100,000 ops/sec barrier:
+```bash
+python -m zerene benchmark --orders 10000000 --engine cpp
+```
+
+### 2. High-Speed Sharded Engine Benchmark (Multi-Core Python)
+Want to see zero-allocation memory pooling and fixed-point integer indexing (`10,000` scale) in pure Python? By passing `--shards 4`, ZERENE scales linearly by spinning up completely isolated matching engines across 4 CPU cores, shattering the 100,000 ops/sec barrier:
 
 ```bash
 python -m zerene benchmark --orders 1000000 --workload realistic --shards 4
 ```
 
-*Output:*
-```text
-  [sharded] Booting 4 independent processes (1 core per matching engine)...
-  [shard-3] Finished 250,000 operations on BENCH-USD-3!
-  ...
-  Operations / Second: 104,374.92 ops/sec
+### 3. Generate Interactive HTML & SVG Visualizer Dashboard
+Render self-contained HTML reports with nanosecond latency histograms (log-scale with P50/P90/P99 markers), workload breakdown donuts, and throughput gauges:
+
+```bash
+python -m zerene benchmark --orders 100000 --format html --output benchmark_report.html
 ```
 
-### Run Multi-Step Simulation Loop
+### 4. Machine-Readable JSON Dumps for CI/CD Gates
+Export raw execution benchmarks as structured JSON for CI performance regression tracking:
+
+```bash
+python -m zerene benchmark --orders 100000 --format json
+```
+
+### 5. Multi-Step Simulation Loop with Live Strategies
 Spawns an `ExchangeVenue` with background Poisson liquidity and executes a multi-step discrete-event simulation:
 
 ```bash
-python -m zerene.cli.main sim --symbols BTC-USD,ETH-USD --steps 1000
+python -m zerene sim --symbols BTC-USD,ETH-USD --steps 1000
+```
+
+### 6. Calibrate Hawkes Processes on Real Tick Data
+Fit baseline arrival $\mu$, self-excitation $\alpha$, and decay $\beta$ from real exchange trade feeds and verify stylized facts (heavy tails, volatility clustering, bid-ask bounce):
+
+```bash
+python -m zerene calibrate --file data/binance_btc.csv --format binance
+```
+
+### 7. Inspect Live Limit Order Book Depth
+Seed a venue and inspect price levels, resting queue depth, and spread:
+
+```bash
+python -m zerene inspect --symbol BTC-USD
 ```
 
 ---
@@ -316,3 +342,33 @@ sim.step(10)  # Watch resting quotes get obliterated and volatility regime shift
 sim.inject_news_shock("ETH-USD", price_jump_pct=0.05)
 sim.step(10)
 ```
+
+---
+
+## 9. Direct Native C++ Core Execution (15M+ ops/sec)
+
+If your workflow requires extreme throughput without Python interpreter overhead (e.g., executing high-volume Monte Carlo order book crossing or latency arbitrage sweeps), call the compiled C++ matching engine directly via `NativeMatchingAccelerator`:
+
+```python
+from zerene.engine.c_accelerator import NativeMatchingAccelerator
+
+if NativeMatchingAccelerator.is_available():
+    mod = NativeMatchingAccelerator.get_core()
+    
+    # 1. Initialize C++ matching engine anchored at $50,000 (500,000,000 ticks)
+    engine = mod.MatchingEngineCore("BTC-USD", 500_000_000)
+
+    # 2. Place resting limit orders (OrderType.LIMIT, Side.BUY / Side.SELL)
+    # Args: Order ID, Side, OrderType, PriceTicks, Quantity
+    engine.process_order_fast(101, mod.Side.BUY, mod.OrderType.LIMIT, 499_900_000, 2.5)
+    engine.process_order_fast(201, mod.Side.SELL, mod.OrderType.LIMIT, 500_100_000, 3.0)
+
+    # 3. Sweep book with market order
+    matched = engine.process_order_fast(301, mod.Side.BUY, mod.OrderType.MARKET, 0, 1.5)
+    print(f"Matched {matched} trades! Total trades: {engine.trade_count()}")
+
+    # 4. In-place price/quantity modification and instant cancellation
+    engine.modify_order_fast(101, 2.5, 499_950_000)
+    engine.cancel_order_fast(101)
+```
+
