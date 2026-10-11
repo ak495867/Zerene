@@ -200,6 +200,7 @@ class MatchingEngine:
                 removed = self.order_book.remove_order(order_id)
                 if removed:
                     removed.price = round(new_price, 8)
+                    removed.price_ticks = int(round(new_price * 10000))
                     removed.quantity = new_quantity
                     if removed.display_quantity is not None:
                         removed.display_quantity = min(
@@ -231,7 +232,10 @@ class MatchingEngine:
                     and incoming.price < best_price
                 ):
                     break
-                level = self.order_book.asks[best_ticks]
+                level = self.order_book.asks.get(best_ticks)
+                if level is None or level.is_empty():
+                    self.order_book.clean_empty_level(best_ticks, Side.SELL)
+                    continue
             else:
                 best_ticks = self.order_book.best_bid_ticks()
                 if best_ticks is None:
@@ -243,7 +247,10 @@ class MatchingEngine:
                     and incoming.price > best_price
                 ):
                     break
-                level = self.order_book.bids[best_ticks]
+                level = self.order_book.bids.get(best_ticks)
+                if level is None or level.is_empty():
+                    self.order_book.clean_empty_level(best_ticks, Side.BUY)
+                    continue
 
             # Match against FIFO queue at this price level
             while not level.is_empty() and incoming.remaining_quantity > 1e-9:

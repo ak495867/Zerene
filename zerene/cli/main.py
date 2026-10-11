@@ -133,18 +133,23 @@ def main(args: Optional[List[str]] = None) -> int:
                 return 1
             use_cpp = True
         elif engine_mode == "auto":
-            if NativeMatchingAccelerator.is_available() and getattr(parsed, "shards", 1) <= 1:
+            if NativeMatchingAccelerator.is_available():
                 use_cpp = True
 
         if getattr(parsed, "shards", 1) > 1:
+            selected_engine = "cpp" if use_cpp else "python"
+            engine_label = "C++20" if use_cpp else "Python"
             if verbose_flag:
                 print(
-                    f"\n[+] Running ZERENE Sharded Institutional Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload, seed={bench_seed})...\n"
+                    f"\n[+] Running ZERENE Sharded Institutional {engine_label} Benchmark across {parsed.orders:,} operations ({parsed.shards} shards, {parsed.workload} workload, seed={bench_seed})...\n"
                 )
             from zerene.benchmarks.sharded_runner import ShardedBenchmarkRunner
 
             sharded_runner = ShardedBenchmarkRunner(
-                base_symbol=parsed.symbol, num_shards=parsed.shards, seed=bench_seed
+                base_symbol=parsed.symbol,
+                num_shards=parsed.shards,
+                seed=bench_seed,
+                engine=selected_engine,
             )
             results = sharded_runner.run(
                 total_orders=parsed.orders,

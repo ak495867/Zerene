@@ -190,7 +190,8 @@ class OrderBook:
         if target_price != current_price or new_quantity > order.quantity:
             # Remove from book and re-insert at tail with new priority
             self.remove_order(order_id)
-            order.price = target_price
+            order.price = new_price if new_price is not None else (target_price / 10000.0)
+            order.price_ticks = target_price
             order.quantity = new_quantity
             if order.display_quantity is not None:
                 order.display_quantity = min(order.display_quantity, new_quantity)
@@ -216,22 +217,23 @@ class OrderBook:
             order.status = OrderStatus.REPLACED
 
             level = (
-                self.bids[current_price]
+                self.bids.get(current_price)
                 if order.side == Side.BUY
-                else self.asks[current_price]
+                else self.asks.get(current_price)
             )
-            level.total_volume = max(0.0, level.total_volume - deduct_display)
-            if order.order_type == OrderType.ICEBERG:
-                if order.display_quantity is not None:
-                    order.hidden_quantity = max(
-                        0.0, order.quantity - order.display_quantity
+            if level is not None:
+                level.total_volume = max(0.0, level.total_volume - deduct_display)
+                if order.order_type == OrderType.ICEBERG:
+                    if order.display_quantity is not None:
+                        order.hidden_quantity = max(
+                            0.0, order.quantity - order.display_quantity
+                        )
+                    level.hidden_volume = max(
+                        0.0, level.hidden_volume - (delta_qty - deduct_display)
                     )
-                level.hidden_volume = max(
-                    0.0, level.hidden_volume - (delta_qty - deduct_display)
-                )
-            elif order.order_type == OrderType.HIDDEN:
-                order.hidden_quantity = order.quantity
-                level.hidden_volume = max(0.0, level.hidden_volume - delta_qty)
+                elif order.order_type == OrderType.HIDDEN:
+                    order.hidden_quantity = order.quantity
+                    level.hidden_volume = max(0.0, level.hidden_volume - delta_qty)
 
             return True, order, "PRIORITY_PRESERVED_REPLACED"
 
@@ -384,11 +386,17 @@ class OrderBook:
         price_ticks = (
             int(round(price * 10000)) if isinstance(price, float) else int(price)
         )
-        if side == Side.BUY and price_ticks in self.bids:
-            if self.bids[price_ticks].is_empty():
-                del self.bids[price_ticks]
+        if side == Side.BUY:
+            if price_ticks in self.bids:
+                if self.bids[price_ticks].is_empty():
+                    del self.bids[price_ticks]
+                    self.sorted_bids.discard(price_ticks)
+            else:
                 self.sorted_bids.discard(price_ticks)
-        elif side == Side.SELL and price_ticks in self.asks:
-            if self.asks[price_ticks].is_empty():
-                del self.asks[price_ticks]
+        elif side == Side.SELL:
+            if price_ticks in self.asks:
+                if self.asks[price_ticks].is_empty():
+                    del self.asks[price_ticks]
+                    self.sorted_asks.discard(price_ticks)
+            else:
                 self.sorted_asks.discard(price_ticks)

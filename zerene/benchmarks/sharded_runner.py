@@ -15,14 +15,23 @@ def _run_shard(
     workload: str,
     verbose: bool = True,
     seed: int = 42,
+    engine_type: str = "python",
 ) -> Dict[str, Any]:
     """
     Worker function to run a completely isolated matching engine in its own process.
     """
-    runner = BenchmarkRunner(symbol, seed=seed)
-    result = runner.run(
-        num_orders=num_orders, workload=workload, verbose=False, seed=seed
-    )
+    if engine_type == "cpp":
+        from zerene.benchmarks.cpp_runner import CppBenchmarkRunner
+
+        runner = CppBenchmarkRunner(symbol, seed=seed)
+        result = runner.run(
+            num_orders=num_orders, workload=workload, verbose=False, seed=seed
+        )
+    else:
+        runner = BenchmarkRunner(symbol, seed=seed)
+        result = runner.run(
+            num_orders=num_orders, workload=workload, verbose=False, seed=seed
+        )
     if verbose:
         print(f"  [shard-{shard_id}] Finished {num_orders:,} operations on {symbol}!")
     return result
@@ -30,11 +39,16 @@ def _run_shard(
 
 class ShardedBenchmarkRunner:
     def __init__(
-        self, base_symbol: str = "SHARD-USD", num_shards: int = 4, seed: int = 42
+        self,
+        base_symbol: str = "SHARD-USD",
+        num_shards: int = 4,
+        seed: int = 42,
+        engine: str = "python",
     ):
         self.base_symbol = base_symbol
         self.num_shards = num_shards
         self.seed = seed
+        self.engine = engine
 
     def run(
         self,
@@ -60,7 +74,7 @@ class ShardedBenchmarkRunner:
                 shard_seed = effective_seed + i
                 res = pool.apply_async(
                     _run_shard,
-                    (i, symbol, orders_per_shard, workload, verbose, shard_seed),
+                    (i, symbol, orders_per_shard, workload, verbose, shard_seed, self.engine),
                 )
                 results.append(res)
 
@@ -88,7 +102,10 @@ class ShardedBenchmarkRunner:
 
         # Just grab metadata from the first shard
         sys_m = completed_results[0]["system_metadata"]
-        sys_m["execution_mode"] = f"Multi-Process Sharded ({self.num_shards} cores)"
+        if self.engine == "cpp":
+            sys_m["execution_mode"] = f"Multi-Process Sharded C++20 Core ({self.num_shards} cores)"
+        else:
+            sys_m["execution_mode"] = f"Multi-Process Sharded ({self.num_shards} cores)"
 
         # Combine latency percentiles (approximate by averaging them, or taking worst case)
         avg_p50 = (
@@ -108,6 +125,27 @@ class ShardedBenchmarkRunner:
             / self.num_shards
         )
         worst_max = max(r["latencies_ns"]["max_ns"] for r in completed_results)
+
+        exec_dict = {
+            "elapsed_seconds": round(elapsed, 4),
+            "orders_per_second": round(aggregate_ops_per_sec, 2),
+            "total_trades_generated": total_trades,
+            "avg_matches_per_order": round(
+                total_trades / max(1, (total_ops * 0.7)), 2
+            ),  # Approx
+            "successful_cancels": total_cancels,
+            "successful_modifies": total_modifies,
+            "final_orderbook_depth_levels": sum(
+                r["execution_metrics"].get("final_orderbook_depth_levels", 500)
+                for r in completed_results
+            ),
+        }
+        total_resting_orders = sum(
+            r["execution_metrics"].get("final_resting_orders", 0)
+            for r in completed_results
+        )
+        if total_resting_orders > 0:
+            exec_dict["final_resting_orders"] = total_resting_orders
 
         return {
             "system_metadata": sys_m,
@@ -132,20 +170,7 @@ class ShardedBenchmarkRunner:
                     for r in completed_results
                 ),
             },
-            "execution_metrics": {
-                "elapsed_seconds": round(elapsed, 4),
-                "orders_per_second": round(aggregate_ops_per_sec, 2),
-                "total_trades_generated": total_trades,
-                "avg_matches_per_order": round(
-                    total_trades / max(1, (total_ops * 0.7)), 2
-                ),  # Approx
-                "successful_cancels": total_cancels,
-                "successful_modifies": total_modifies,
-                "final_orderbook_depth_levels": sum(
-                    r["execution_metrics"]["final_orderbook_depth_levels"]
-                    for r in completed_results
-                ),
-            },
+            "execution_metrics": exec_dict,
             "latencies_ns": {
                 "p50_ns": round(avg_p50, 1),
                 "p90_ns": round(avg_p90, 1),
