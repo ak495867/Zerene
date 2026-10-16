@@ -4,6 +4,12 @@
 #include <string>
 #include <limits>
 
+#if !defined(__GNUC__) && !defined(__clang__)
+#ifndef __builtin_expect
+#define __builtin_expect(expr, val) (expr)
+#endif
+#endif
+
 namespace zerene {
 
 enum class Side : uint8_t {

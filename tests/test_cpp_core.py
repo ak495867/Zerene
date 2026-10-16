@@ -3,8 +3,15 @@ Unit tests for the ultra-fast C++ Matching Engine Core and Accelerator.
 Verifies pybind11 bindings, crossing engine, order lifecycle, and high-throughput benchmarks.
 """
 
+import pytest
+
 from zerene.engine.c_accelerator import NativeMatchingAccelerator
 from zerene.benchmarks.cpp_runner import CppBenchmarkRunner
+
+pytestmark = pytest.mark.skipif(
+    not NativeMatchingAccelerator.is_available(),
+    reason="Native C++ core (zerene_cpp_core) is not compiled or available in this environment.",
+)
 
 
 def test_native_accelerator_availability():

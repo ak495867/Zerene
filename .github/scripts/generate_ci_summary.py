@@ -50,7 +50,7 @@ def main():
 | **Single-Thread CPython** | {s_meta.get('workload_mode', 'realistic').upper()} | {s_meta.get('total_operations', 0):,} | **{s_exec.get('orders_per_second', 0):,.2f}** | {s_lat.get('p50_ns', 0)/1000:.2f} µs | {s_lat.get('p99_ns', 0)/1000:.2f} µs | {s_lat.get('max_ns', 0)/1000:.2f} µs |
 | **Multi-Process Sharded ({m_meta.get('shards', 4)} cores)** | {m_meta.get('workload_mode', 'realistic').upper()} | {m_meta.get('total_operations', 0):,} | **{m_exec.get('orders_per_second', 0):,.2f}** | {m_lat.get('p50_ns', 0)/1000:.2f} µs | {m_lat.get('p99_ns', 0)/1000:.2f} µs | {m_lat.get('max_ns', 0)/1000:.2f} µs |
 
-### 🏛️ Verified Next-Gen Architectural Subsystems (49/49 Unit Tests Passing)
+### 🏛️ Verified Next-Gen Architectural Subsystems (63/63 Unit Tests Passing)
 - ✅ **Call Auction Engine**: Single equilibrium clearing price volume maximization ([call_auction.py](file:///D:/zerene/zerene/engine/call_auction.py))
 - ✅ **Self-Trade Prevention**: CANCEL_NEWEST, CANCEL_OLDEST, DECREMENT_AND_CANCEL ([matching_engine.py](file:///D:/zerene/zerene/engine/matching_engine.py))
 - ✅ **Deterministic Replay Engine**: Binary compressed log streams (.zlog.gz) ([logger.py](file:///D:/zerene/zerene/replay/logger.py))

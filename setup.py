@@ -31,12 +31,21 @@ try:
         if sys.platform == "win32":
             cc = os.environ.get("CC", "").lower()
             if "gcc" in cc or "clang" in cc:
-                extra_compile_args = ["-O3", "-std=c++20", "-march=native"]
+                extra_compile_args = ["-O3", "-std=c++20"]
                 extra_link_args = ["-static", "-static-libgcc", "-static-libstdc++"]
             else:
                 extra_compile_args = ["/O2", "/std:c++20"]
+        elif sys.platform == "darwin":
+            extra_compile_args = ["-O3", "-std=c++20", "-stdlib=libc++"]
         else:
-            extra_compile_args = ["-O3", "-std=c++20", "-march=native"]
+            extra_compile_args = ["-O3", "-std=c++20"]
+
+        if (
+            sys.platform != "darwin"
+            and os.environ.get("ZERENE_NATIVE_ARCH", "").lower() in ("1", "true")
+        ):
+            if sys.platform != "win32" or ("gcc" in os.environ.get("CC", "").lower() or "clang" in os.environ.get("CC", "").lower()):
+                extra_compile_args.append("-march=native")
 
         ext_modules = [
             Pybind11Extension(

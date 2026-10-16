@@ -31,7 +31,7 @@ jobs:
       - name:  Install quality tools
         run: |
           python -m pip install --upgrade pip
-          pip install "ruff==0.15.20" "mypy==2.1.0" -e .[dev,analytics]
+          pip install "pybind11>=2.10.0" "ruff==0.15.20" "mypy==2.1.0" -e .[dev,analytics]
       - name:  Check code formatting & linting with Ruff
         run: |
           ruff check zerene/ tests/
@@ -67,9 +67,10 @@ jobs:
       - name:  Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install "pybind11>=2.10.0"
           pip install -e .[dev,analytics]
 
-      - name:  Execute Test Suite (49/49 Unit Tests)
+      - name:  Execute Test Suite (63/63 Unit Tests)
         run: |
           pytest -v --cov=zerene --cov-report=term-missing --cov-report=xml tests/
 
@@ -101,6 +102,7 @@ jobs:
       - name:  Install ZERENE
         run: |
           python -m pip install --upgrade pip
+          pip install "pybind11>=2.10.0"
           pip install -e .[dev,analytics]
 
       - name:  Run Single-Threaded Benchmark (50k ops)
@@ -133,7 +135,7 @@ jobs:
 
       - name:  Build sdist and wheel
         run: |
-          python -m pip install --upgrade pip build twine
+          python -m pip install --upgrade pip build twine "pybind11>=2.10.0"
           python -m build
 
       - name:  Check package distribution metadata
