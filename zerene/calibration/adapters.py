@@ -107,7 +107,11 @@ class StandardL3Parser:
                 side = Side.BUY if side_str == "BUY" else Side.SELL
                 action = str(r.get("action") or "INSERT").upper()
                 price_val = r.get("price")
-                price = float(price_val) if price_val is not None and price_val.strip() else None
+                price = (
+                    float(price_val)
+                    if price_val is not None and price_val.strip()
+                    else None
+                )
                 qty = float(r.get("quantity") or 1.0)
 
                 otype = OrderType.MARKET if action == "EXECUTE" else OrderType.LIMIT
