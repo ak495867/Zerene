@@ -40,11 +40,13 @@ try:
         else:
             extra_compile_args = ["-O3", "-std=c++20"]
 
-        if (
-            sys.platform != "darwin"
-            and os.environ.get("ZERENE_NATIVE_ARCH", "").lower() in ("1", "true")
-        ):
-            if sys.platform != "win32" or ("gcc" in os.environ.get("CC", "").lower() or "clang" in os.environ.get("CC", "").lower()):
+        if sys.platform != "darwin" and os.environ.get(
+            "ZERENE_NATIVE_ARCH", ""
+        ).lower() in ("1", "true"):
+            if sys.platform != "win32" or (
+                "gcc" in os.environ.get("CC", "").lower()
+                or "clang" in os.environ.get("CC", "").lower()
+            ):
                 extra_compile_args.append("-march=native")
 
         ext_modules = [
