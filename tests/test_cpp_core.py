@@ -24,17 +24,25 @@ def test_cpp_matching_core_order_lifecycle():
     engine = mod.MatchingEngineCore("BTC-USD", 50_000_0000)  # anchor at $50,000
 
     # 1. Place resting limit buy orders: $49,990 (499900000 ticks) and $49,980
-    engine.process_order_fast(101, mod.Side.BUY, mod.OrderType.LIMIT, 499900000, 2.5, 1.0)
-    engine.process_order_fast(102, mod.Side.BUY, mod.OrderType.LIMIT, 499800000, 1.0, 1.1)
+    engine.process_order_fast(
+        101, mod.Side.BUY, mod.OrderType.LIMIT, 499900000, 2.5, 1.0
+    )
+    engine.process_order_fast(
+        102, mod.Side.BUY, mod.OrderType.LIMIT, 499800000, 1.0, 1.1
+    )
 
     assert engine.best_bid_ticks() == 499900000
 
     # 2. Place resting limit sell order: $50,010 (500100000 ticks)
-    engine.process_order_fast(201, mod.Side.SELL, mod.OrderType.LIMIT, 500100000, 3.0, 1.2)
+    engine.process_order_fast(
+        201, mod.Side.SELL, mod.OrderType.LIMIT, 500100000, 3.0, 1.2
+    )
     assert engine.best_ask_ticks() == 500100000
 
     # 3. Market order crossing: aggressive buy sweeps resting sell
-    trades_gen = engine.process_order_fast(301, mod.Side.BUY, mod.OrderType.MARKET, 0, 1.5, 2.0)
+    trades_gen = engine.process_order_fast(
+        301, mod.Side.BUY, mod.OrderType.MARKET, 0, 1.5, 2.0
+    )
     assert trades_gen == 1
     assert engine.trade_count() == 1
 
@@ -58,7 +66,9 @@ def test_cpp_benchmark_runner_execution():
     results = runner.run(num_orders=100_000, verbose=False, seed=42)
 
     assert results["workload_metadata"]["total_operations"] == 100_000
-    assert results["execution_metrics"]["orders_per_second"] > 1_000_000  # > 1M ops/sec even on small batch
+    assert (
+        results["execution_metrics"]["orders_per_second"] > 1_000_000
+    )  # > 1M ops/sec even on small batch
     assert results["execution_metrics"]["total_trades_generated"] > 0
     assert "latencies_ns" in results
     assert "p50_ns" in results["latencies_ns"]

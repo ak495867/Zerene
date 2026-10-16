@@ -12,9 +12,9 @@ from zerene.models import Order, Side
 
 class CircuitBreakerState(Enum):
     NORMAL = "NORMAL"
-    LIMIT_STATE = "LIMIT_STATE"     # Order resting at band boundary
+    LIMIT_STATE = "LIMIT_STATE"  # Order resting at band boundary
     STRADDLE_STATE = "STRADDLE_STATE"
-    HALTED = "HALTED"               # Trading paused due to sustained price breach
+    HALTED = "HALTED"  # Trading paused due to sustained price breach
 
 
 @dataclass(slots=True)
@@ -34,7 +34,7 @@ class CircuitBreaker:
         self,
         symbol: str,
         initial_reference_price: Optional[float] = None,
-        band_pct: float = 0.05,       # 5% price bands around reference price
+        band_pct: float = 0.05,  # 5% price bands around reference price
         halt_duration_sec: float = 300.0,  # 5-minute halt on breach
         collar_enabled: bool = True,
     ):
@@ -63,7 +63,10 @@ class CircuitBreaker:
 
     def check_halt_expiry(self, current_time: float) -> bool:
         """Resumes trading if halt duration has elapsed."""
-        if self.state == CircuitBreakerState.HALTED and self.halt_start_time is not None:
+        if (
+            self.state == CircuitBreakerState.HALTED
+            and self.halt_start_time is not None
+        ):
             if current_time - self.halt_start_time >= self.halt_duration_sec:
                 self.state = CircuitBreakerState.NORMAL
                 self.halt_start_time = None
@@ -75,7 +78,9 @@ class CircuitBreaker:
         self.state = CircuitBreakerState.HALTED
         self.halt_start_time = current_time
 
-    def validate_order(self, order: Order, current_time: float = 0.0) -> Tuple[bool, Optional[str]]:
+    def validate_order(
+        self, order: Order, current_time: float = 0.0
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validates order against circuit breaker state and price collar bands.
         Rejects orders during halts or orders crossing outside allowable collars.
@@ -83,7 +88,10 @@ class CircuitBreaker:
         self.check_halt_expiry(current_time)
 
         if self.state == CircuitBreakerState.HALTED:
-            return False, f"TRADING_HALTED: LULD circuit breaker active on {self.symbol}"
+            return (
+                False,
+                f"TRADING_HALTED: LULD circuit breaker active on {self.symbol}",
+            )
 
         if not self.collar_enabled:
             return True, None
@@ -94,11 +102,21 @@ class CircuitBreaker:
             return True, None
 
         # Collar checks on limit orders
-        if order.price is not None and self.upper_band is not None and self.lower_band is not None:
+        if (
+            order.price is not None
+            and self.upper_band is not None
+            and self.lower_band is not None
+        ):
             if order.side == Side.BUY and order.price > self.upper_band:
-                return False, f"LULD_PRICE_COLLAR_BREACH: BUY price {order.price:.2f} > Upper Band {self.upper_band:.2f}"
+                return (
+                    False,
+                    f"LULD_PRICE_COLLAR_BREACH: BUY price {order.price:.2f} > Upper Band {self.upper_band:.2f}",
+                )
             if order.side == Side.SELL and order.price < self.lower_band:
-                return False, f"LULD_PRICE_COLLAR_BREACH: SELL price {order.price:.2f} < Lower Band {self.lower_band:.2f}"
+                return (
+                    False,
+                    f"LULD_PRICE_COLLAR_BREACH: SELL price {order.price:.2f} < Lower Band {self.lower_band:.2f}",
+                )
 
         return True, None
 

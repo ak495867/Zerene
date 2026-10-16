@@ -4,14 +4,15 @@ Provides zero-overhead direct C structs for Order and PriceLevel matching
 with transparent fallback to pure Python if binary extensions are not compiled.
 """
 
-
 try:
     # If compiled C++ extension exists, import high-speed C++ matching core
     from zerene import zerene_cpp_core as _cpp_core
+
     HAS_NATIVE_CORE = True
 except ImportError:
     try:
         import zerene_cpp_core as _cpp_core  # type: ignore
+
         HAS_NATIVE_CORE = True
     except ImportError:
         _cpp_core = None

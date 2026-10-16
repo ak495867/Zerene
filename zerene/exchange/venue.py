@@ -47,7 +47,9 @@ class ExchangeVenue:
         self.latency_gateway = latency_gateway or LatencyGateway()
         self.risk_engine.on_kill_switch_callback = self.cancel_all_for_participant
 
-    def add_symbol(self, symbol: str, initial_ref_price: float = 100.0) -> MatchingEngine:
+    def add_symbol(
+        self, symbol: str, initial_ref_price: float = 100.0
+    ) -> MatchingEngine:
         if symbol not in self.engines:
             self.engines[symbol] = MatchingEngine(symbol)
             self.circuit_breakers[symbol] = CircuitBreaker(

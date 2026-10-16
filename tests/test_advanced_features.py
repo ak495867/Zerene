@@ -31,13 +31,17 @@ def test_circuit_breaker_luld():
     assert cb.upper_band == 105.0
 
     # Order inside band -> passes
-    valid_order = Order("O1", "C1", "BTC-USD", Side.BUY, OrderType.LIMIT, price=102.0, quantity=1.0)
+    valid_order = Order(
+        "O1", "C1", "BTC-USD", Side.BUY, OrderType.LIMIT, price=102.0, quantity=1.0
+    )
     ok, err = cb.validate_order(valid_order)
     assert ok is True
     assert err is None
 
     # Order outside band -> rejected
-    violating_order = Order("O2", "C2", "BTC-USD", Side.BUY, OrderType.LIMIT, price=108.0, quantity=1.0)
+    violating_order = Order(
+        "O2", "C2", "BTC-USD", Side.BUY, OrderType.LIMIT, price=108.0, quantity=1.0
+    )
     ok, err = cb.validate_order(violating_order)
     assert ok is False
     assert "LULD_PRICE_COLLAR_BREACH" in err
@@ -63,7 +67,9 @@ def test_fee_schedule_rebates():
     assert t_bps == 2.0
 
     # Rebate calculation on $100,000 notional: -$5.00
-    fee = schedule.calculate_trade_fees(notional_value=100_000.0, is_maker=True, participant_volume_30d=2_000_000.0)
+    fee = schedule.calculate_trade_fees(
+        notional_value=100_000.0, is_maker=True, participant_volume_30d=2_000_000.0
+    )
     assert fee == -5.0
 
 
@@ -80,7 +86,18 @@ def test_itch_50_binary_parser():
     stock = b"AAPL    "
     raw_price = 1500000  # $150.00
 
-    payload = struct.pack(">cHH6sQcI8sI", msg_type, locate, tracking, ts_bytes, ref_num, side, shares, stock, raw_price)
+    payload = struct.pack(
+        ">cHH6sQcI8sI",
+        msg_type,
+        locate,
+        tracking,
+        ts_bytes,
+        ref_num,
+        side,
+        shares,
+        stock,
+        raw_price,
+    )
     stream = io.BytesIO(struct.pack(">H", len(payload)) + payload)
 
     parsed = list(ITCH50Parser.parse_stream(stream))
@@ -106,7 +123,16 @@ def test_adverse_selection_agent():
     # Seed passive asks
     for i in range(1, 4):
         engine.process_order(
-            Order(f"A-{i}", "C", "TEST-USD", Side.SELL, OrderType.LIMIT, price=100.0 + i * 0.1, quantity=10.0, owner_id="LP")
+            Order(
+                f"A-{i}",
+                "C",
+                "TEST-USD",
+                Side.SELL,
+                OrderType.LIMIT,
+                price=100.0 + i * 0.1,
+                quantity=10.0,
+                owner_id="LP",
+            )
         )
 
     agent = AdverseSelectionAgent("TEST-USD", sensitivity_threshold_qty=5.0)
@@ -151,8 +177,16 @@ def test_benchmark_html_generator():
     dummy_results = {
         "system_metadata": {"platform": "TestOS", "python_version": "3.14"},
         "workload_metadata": {"total_operations": 500, "seed": 42},
-        "execution_metrics": {"orders_per_second": 50000, "total_trades_generated": 100},
-        "latencies_ns": {"p50_ns": 12000, "p90_ns": 20000, "p99_ns": 35000, "p99_9_ns": 60000},
+        "execution_metrics": {
+            "orders_per_second": 50000,
+            "total_trades_generated": 100,
+        },
+        "latencies_ns": {
+            "p50_ns": 12000,
+            "p90_ns": 20000,
+            "p99_ns": 35000,
+            "p99_9_ns": 60000,
+        },
     }
     with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tf:
         path = tf.name

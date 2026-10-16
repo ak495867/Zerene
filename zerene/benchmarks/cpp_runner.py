@@ -38,8 +38,12 @@ class CppBenchmarkRunner:
 
         if hasattr(mod, "run_cpp_benchmark"):
             if verbose:
-                print(f"  [bench-cpp] Streaming {num_orders:,} operations natively via C++ engine core...")
-            cpp_res = mod.run_cpp_benchmark(self.symbol, num_orders, effective_seed, verbose)
+                print(
+                    f"  [bench-cpp] Streaming {num_orders:,} operations natively via C++ engine core..."
+                )
+            cpp_res = mod.run_cpp_benchmark(
+                self.symbol, num_orders, effective_seed, verbose
+            )
             elapsed = max(1e-9, cpp_res.elapsed_seconds)
             total_ops = cpp_res.total_operations
             ops_per_sec = cpp_res.orders_per_second
@@ -58,8 +62,20 @@ class CppBenchmarkRunner:
 
             # Pre-seed book across 250 price levels on each side
             for i in range(1, 251):
-                engine.process_order_fast(1000000 + i, mod.Side.BUY, mod.OrderType.LIMIT, 1_000_000 - i * 5, 1000.0)
-                engine.process_order_fast(2000000 + i, mod.Side.SELL, mod.OrderType.LIMIT, 1_000_000 + i * 5, 1000.0)
+                engine.process_order_fast(
+                    1000000 + i,
+                    mod.Side.BUY,
+                    mod.OrderType.LIMIT,
+                    1_000_000 - i * 5,
+                    1000.0,
+                )
+                engine.process_order_fast(
+                    2000000 + i,
+                    mod.Side.SELL,
+                    mod.OrderType.LIMIT,
+                    1_000_000 + i * 5,
+                    1000.0,
+                )
 
             active_ids = []
             for i in range(1, 251):
@@ -67,7 +83,9 @@ class CppBenchmarkRunner:
                 active_ids.append(2000000 + i)
 
             if verbose:
-                print(f"  [bench-cpp] Streaming {num_orders:,} operations through native C++ core...")
+                print(
+                    f"  [bench-cpp] Streaming {num_orders:,} operations through native C++ core..."
+                )
 
             # Fast RNG state
             s0 = effective_seed & 0xFFFFFFFFFFFFFFFF
@@ -96,7 +114,9 @@ class CppBenchmarkRunner:
                     s1_prev = s0
                     s0 = s1
                     s1_prev ^= (s1_prev << 23) & 0xFFFFFFFFFFFFFFFF
-                    s1 = (s1_prev ^ s0 ^ (s1_prev >> 18) ^ (s0 >> 5)) & 0xFFFFFFFFFFFFFFFF
+                    s1 = (
+                        s1_prev ^ s0 ^ (s1_prev >> 18) ^ (s0 >> 5)
+                    ) & 0xFFFFFFFFFFFFFFFF
                     r = (s1 + s0) & 0xFFFFFFFFFFFFFFFF
 
                     op_type = r % 100
@@ -109,14 +129,18 @@ class CppBenchmarkRunner:
                         limit_count += 1
                         offset = ((r >> 8) % 100) - 50
                         price_ticks = 1_000_000 + offset
-                        engine.process_order_fast(oid, side, mod.OrderType.LIMIT, price_ticks, 10.0)
+                        engine.process_order_fast(
+                            oid, side, mod.OrderType.LIMIT, price_ticks, 10.0
+                        )
                         if len(active_ids) < 50_000:
                             active_ids.append(oid)
                         else:
                             active_ids[(r >> 16) % 50_000] = oid
                     elif op_type < 70:
                         market_count += 1
-                        engine.process_order_fast(oid, side, mod.OrderType.MARKET, 0, 5.0)
+                        engine.process_order_fast(
+                            oid, side, mod.OrderType.MARKET, 0, 5.0
+                        )
                     elif op_type < 90 and active_ids:
                         cancel_count += 1
                         target_id = active_ids[(r >> 24) % len(active_ids)]
@@ -131,7 +155,9 @@ class CppBenchmarkRunner:
                 if verbose and (num_orders - ops_remaining) % 1_000_000 == 0:
                     elapsed_so_far = time.perf_counter() - t0
                     rate = (num_orders - ops_remaining) / max(1e-9, elapsed_so_far)
-                    print(f"  [bench-cpp] {num_orders - ops_remaining:>12,} / {num_orders:,} ops | {rate:,.0f} ops/sec")
+                    print(
+                        f"  [bench-cpp] {num_orders - ops_remaining:>12,} / {num_orders:,} ops | {rate:,.0f} ops/sec"
+                    )
 
             t1 = time.perf_counter()
             elapsed = max(1e-9, t1 - t0)
@@ -163,7 +189,9 @@ class CppBenchmarkRunner:
                 "total_operations": total_ops,
                 "latency_sample_size": total_ops,
                 "limit_inserts_pct": round((limit_count / max(1, total_ops)) * 100, 1),
-                "market_inserts_pct": round((market_count / max(1, total_ops)) * 100, 1),
+                "market_inserts_pct": round(
+                    (market_count / max(1, total_ops)) * 100, 1
+                ),
                 "cancels_pct": round((cancel_count / max(1, total_ops)) * 100, 1),
                 "modifies_pct": round((modify_count / max(1, total_ops)) * 100, 1),
             },

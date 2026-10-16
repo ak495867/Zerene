@@ -74,7 +74,15 @@ class ShardedBenchmarkRunner:
                 shard_seed = effective_seed + i
                 res = pool.apply_async(
                     _run_shard,
-                    (i, symbol, orders_per_shard, workload, verbose, shard_seed, self.engine),
+                    (
+                        i,
+                        symbol,
+                        orders_per_shard,
+                        workload,
+                        verbose,
+                        shard_seed,
+                        self.engine,
+                    ),
                 )
                 results.append(res)
 
@@ -103,7 +111,9 @@ class ShardedBenchmarkRunner:
         # Just grab metadata from the first shard
         sys_m = completed_results[0]["system_metadata"]
         if self.engine == "cpp":
-            sys_m["execution_mode"] = f"Multi-Process Sharded C++20 Core ({self.num_shards} cores)"
+            sys_m["execution_mode"] = (
+                f"Multi-Process Sharded C++20 Core ({self.num_shards} cores)"
+            )
         else:
             sys_m["execution_mode"] = f"Multi-Process Sharded ({self.num_shards} cores)"
 

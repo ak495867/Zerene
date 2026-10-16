@@ -35,7 +35,9 @@ class VectorRLTradingEnvironment:
             for i in range(num_envs)
         ]
 
-    def reset(self, seed: Optional[int] = None) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
+    def reset(
+        self, seed: Optional[int] = None
+    ) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
         """Resets all environments and returns stacked observation array (num_envs, obs_dim)."""
         obs_list = []
         infos = []

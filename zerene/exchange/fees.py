@@ -10,9 +10,9 @@ from typing import List, Tuple
 
 @dataclass(slots=True)
 class FeeTier:
-    min_volume_30d: float      # Minimum 30d USD volume to unlock tier
-    maker_fee_bps: float       # Maker fee (negative = rebate to liquidity provider)
-    taker_fee_bps: float       # Taker fee (positive = charge to liquidity taker)
+    min_volume_30d: float  # Minimum 30d USD volume to unlock tier
+    maker_fee_bps: float  # Maker fee (negative = rebate to liquidity provider)
+    taker_fee_bps: float  # Taker fee (positive = charge to liquidity taker)
 
 
 @dataclass
@@ -20,14 +20,27 @@ class FeeSchedule:
     """
     Tiered fee schedule model conforming to Tier 1 equity and crypto derivatives venues.
     """
+
     venue_name: str = "DEFAULT"
-    tiers: List[FeeTier] = field(default_factory=lambda: [
-        FeeTier(min_volume_30d=0.0, maker_fee_bps=1.0, taker_fee_bps=5.0),         # Retail / VIP 0
-        FeeTier(min_volume_30d=100_000.0, maker_fee_bps=0.0, taker_fee_bps=3.5),   # VIP 1
-        FeeTier(min_volume_30d=1_000_000.0, maker_fee_bps=-0.5, taker_fee_bps=2.0), # VIP 2 (Maker Rebate)
-        FeeTier(min_volume_30d=10_000_000.0, maker_fee_bps=-1.0, taker_fee_bps=1.5),# VIP 3 (Institutional MM)
-        FeeTier(min_volume_30d=50_000_000.0, maker_fee_bps=-1.5, taker_fee_bps=1.0),# VIP 4 (Lead Market Maker)
-    ])
+    tiers: List[FeeTier] = field(
+        default_factory=lambda: [
+            FeeTier(
+                min_volume_30d=0.0, maker_fee_bps=1.0, taker_fee_bps=5.0
+            ),  # Retail / VIP 0
+            FeeTier(
+                min_volume_30d=100_000.0, maker_fee_bps=0.0, taker_fee_bps=3.5
+            ),  # VIP 1
+            FeeTier(
+                min_volume_30d=1_000_000.0, maker_fee_bps=-0.5, taker_fee_bps=2.0
+            ),  # VIP 2 (Maker Rebate)
+            FeeTier(
+                min_volume_30d=10_000_000.0, maker_fee_bps=-1.0, taker_fee_bps=1.5
+            ),  # VIP 3 (Institutional MM)
+            FeeTier(
+                min_volume_30d=50_000_000.0, maker_fee_bps=-1.5, taker_fee_bps=1.0
+            ),  # VIP 4 (Lead Market Maker)
+        ]
+    )
 
     def get_tier_fees(self, participant_volume_30d: float) -> Tuple[float, float]:
         """Returns (maker_fee_bps, taker_fee_bps) for the corresponding participant tier."""

@@ -31,8 +31,8 @@ class AdverseSelectionAgent:
         self,
         symbol: str,
         sensitivity_threshold_qty: float = 5.0,  # Block size triggering retreat
-        evaporation_pct: float = 0.50,            # Cancel 50% of resting queue
-        spread_widening_ticks: int = 2,           # Shift new quotes 2 ticks back
+        evaporation_pct: float = 0.50,  # Cancel 50% of resting queue
+        spread_widening_ticks: int = 2,  # Shift new quotes 2 ticks back
     ):
         self.symbol = symbol
         self.threshold = sensitivity_threshold_qty
@@ -52,7 +52,9 @@ class AdverseSelectionAgent:
 
         # Determine vulnerable side of the order book
         # If aggressive buyer bought, asks got hit -> resting sellers retreat
-        side_to_prune = engine.order_book.asks if trade.taker_order_id else engine.order_book.bids
+        side_to_prune = (
+            engine.order_book.asks if trade.taker_order_id else engine.order_book.bids
+        )
 
         withdrawn = 0.0
         # Evaporate top-of-book passive orders
@@ -63,7 +65,9 @@ class AdverseSelectionAgent:
             # Collect orders at this level to cancel
             to_cancel: List[str] = []
             curr = level.head()
-            while curr is not None and withdrawn < (trade.quantity * self.evaporation_pct):
+            while curr is not None and withdrawn < (
+                trade.quantity * self.evaporation_pct
+            ):
                 # Don't cancel participant's own orders
                 if curr.owner_id != "PARTICIPANT":
                     to_cancel.append(curr.order_id)

@@ -15,7 +15,9 @@ class BenchmarkReportGenerator:
     """
 
     @staticmethod
-    def generate_html_report(benchmark_results: Dict[str, Any], output_path: str) -> str:
+    def generate_html_report(
+        benchmark_results: Dict[str, Any], output_path: str
+    ) -> str:
         """Writes standalone HTML report to disk and returns file path."""
         sys_m = benchmark_results.get("system_metadata", {})
         work_m = benchmark_results.get("workload_metadata", {})

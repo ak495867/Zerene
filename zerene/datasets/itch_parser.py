@@ -24,12 +24,12 @@ class ITCHMessage:
     msg_type: str
     stock_locate: int
     tracking_number: int
-    timestamp_ns: int       # Nanoseconds since midnight
+    timestamp_ns: int  # Nanoseconds since midnight
     order_ref_num: int
     side: Optional[Side]
     shares: int
     stock: str
-    price: float            # Scaled price (fixed-point integer divided by 10,000)
+    price: float  # Scaled price (fixed-point integer divided by 10,000)
 
 
 class ITCH50Parser:
@@ -56,9 +56,16 @@ class ITCH50Parser:
             # Type 'A': Add Order - No MPID (36 bytes payload)
             # Format: 'A', stock_locate(H), tracking_number(H), timestamp(6s), order_ref_num(Q), side(c), shares(I), stock(8s), price(I)
             if msg_type == "A" and len(msg_bytes) >= 36:
-                stock_locate, tracking, ts_bytes, ref_num, side_byte, shares, stock_bytes, raw_price = struct.unpack(
-                    ">HH6sQcI8sI", msg_bytes[1:36]
-                )
+                (
+                    stock_locate,
+                    tracking,
+                    ts_bytes,
+                    ref_num,
+                    side_byte,
+                    shares,
+                    stock_bytes,
+                    raw_price,
+                ) = struct.unpack(">HH6sQcI8sI", msg_bytes[1:36])
                 ts_ns = int.from_bytes(ts_bytes, byteorder="big")
                 side = Side.BUY if side_byte == b"B" else Side.SELL
                 stock = stock_bytes.decode("ascii", errors="ignore").strip()
@@ -79,8 +86,8 @@ class ITCH50Parser:
             # Type 'E': Order Executed (31 bytes payload)
             # Format: 'E', stock_locate(H), tracking_number(H), timestamp(6s), order_ref_num(Q), executed_shares(I), match_number(Q)
             elif msg_type == "E" and len(msg_bytes) >= 31:
-                stock_locate, tracking, ts_bytes, ref_num, shares, match_num = struct.unpack(
-                    ">HH6sQIQ", msg_bytes[1:31]
+                stock_locate, tracking, ts_bytes, ref_num, shares, match_num = (
+                    struct.unpack(">HH6sQIQ", msg_bytes[1:31])
                 )
                 ts_ns = int.from_bytes(ts_bytes, byteorder="big")
                 yield ITCHMessage(

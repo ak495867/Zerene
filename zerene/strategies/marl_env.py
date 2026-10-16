@@ -55,7 +55,9 @@ class MultiAgentRLMarketEnv:
         self.simulator.step(10)
         return {aid: self._get_observation(aid) for aid in self.agent_ids}
 
-    def step(self, actions: Dict[str, int]) -> Tuple[
+    def step(
+        self, actions: Dict[str, int]
+    ) -> Tuple[
         Dict[str, np.ndarray],
         Dict[str, float],
         Dict[str, bool],

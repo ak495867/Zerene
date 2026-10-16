@@ -190,7 +190,9 @@ class OrderBook:
         if target_price != current_price or new_quantity > order.quantity:
             # Remove from book and re-insert at tail with new priority
             self.remove_order(order_id)
-            order.price = new_price if new_price is not None else (target_price / 10000.0)
+            order.price = (
+                new_price if new_price is not None else (target_price / 10000.0)
+            )
             order.price_ticks = target_price
             order.quantity = new_quantity
             if order.display_quantity is not None:

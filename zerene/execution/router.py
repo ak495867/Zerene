@@ -196,9 +196,9 @@ class SmartOrderRouter:
         Calculates effective price = price * (1 + side * taker_fee_bps / 10000).
         Consumes cheapest effective liquidity tranches across all venues up to target quantity.
         """
-        all_tranches: List[Tuple[str, float, float, float]] = (
-            []
-        )  # (venue_id, raw_price, effective_price, volume)
+        all_tranches: List[
+            Tuple[str, float, float, float]
+        ] = []  # (venue_id, raw_price, effective_price, volume)
 
         for venue_id in self.venues.keys():
             snap = snapshots.get(venue_id)

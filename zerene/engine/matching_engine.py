@@ -225,7 +225,9 @@ class MatchingEngine:
                 best_ticks = self.order_book.best_ask_ticks()
                 if best_ticks is None:
                     break
-                best_price = best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
+                best_price = (
+                    best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
+                )
                 if (
                     incoming.order_type != OrderType.MARKET
                     and incoming.price is not None
@@ -240,7 +242,9 @@ class MatchingEngine:
                 best_ticks = self.order_book.best_bid_ticks()
                 if best_ticks is None:
                     break
-                best_price = best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
+                best_price = (
+                    best_ticks / 10000.0 if isinstance(best_ticks, int) else best_ticks
+                )
                 if (
                     incoming.order_type != OrderType.MARKET
                     and incoming.price is not None

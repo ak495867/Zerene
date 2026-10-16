@@ -129,7 +129,9 @@ def main(args: Optional[List[str]] = None) -> int:
         use_cpp = False
         if engine_mode == "cpp":
             if not NativeMatchingAccelerator.is_available():
-                print("[-] Error: Native C++ engine requested (--engine cpp), but zerene_cpp_core is not compiled.")
+                print(
+                    "[-] Error: Native C++ engine requested (--engine cpp), but zerene_cpp_core is not compiled."
+                )
                 return 1
             use_cpp = True
         elif engine_mode == "auto":
@@ -226,9 +228,7 @@ def main(args: Optional[List[str]] = None) -> int:
             f"  Operation Mix            : Limit: {w_m['limit_inserts_pct']}% | Market: {w_m['market_inserts_pct']}% | Cancel: {w_m['cancels_pct']}% | Modify: {w_m['modifies_pct']}%"
         )
         sample_size = w_m.get("latency_sample_size", w_m["total_operations"])
-        print(
-            f"  Latency Sample Size      : {sample_size:,} (reservoir sampled)"
-        )
+        print(f"  Latency Sample Size      : {sample_size:,} (reservoir sampled)")
         print("\n[Throughput & Execution Metrics]")
         print(f"  Elapsed Time             : {exec_m['elapsed_seconds']} s")
         print(
@@ -246,9 +246,7 @@ def main(args: Optional[List[str]] = None) -> int:
                 f"  Final Orderbook Depth    : {exec_m['final_orderbook_depth_levels']} active price levels"
             )
         if "final_resting_orders" in exec_m:
-            print(
-                f"  Final Resting Orders     : {exec_m['final_resting_orders']:,}"
-            )
+            print(f"  Final Resting Orders     : {exec_m['final_resting_orders']:,}")
         print("\n[Latency Percentiles]")
         print(
             f"  P50 Median Latency       : {l_ns['p50_ns']:>8.1f} ns ({l_ns['p50_ns'] / 1000:>6.2f} µs)"
