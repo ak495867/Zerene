@@ -23,14 +23,18 @@ def _run_shard(
     if engine_type == "cpp":
         from zerene.benchmarks.cpp_runner import CppBenchmarkRunner
 
-        runner = CppBenchmarkRunner(symbol, seed=seed)
-        result = runner.run(
-            num_orders=num_orders, workload=workload, verbose=False, seed=seed
+        result = CppBenchmarkRunner(symbol, seed=seed).run(
+            num_orders=num_orders,
+            workload=workload,
+            verbose=False,
+            seed=seed,
         )
     else:
-        runner = BenchmarkRunner(symbol, seed=seed)
-        result = runner.run(
-            num_orders=num_orders, workload=workload, verbose=False, seed=seed
+        result = BenchmarkRunner(symbol, seed=seed).run(
+            num_orders=num_orders,
+            workload=workload,
+            verbose=False,
+            seed=seed,
         )
     if verbose:
         print(f"  [shard-{shard_id}] Finished {num_orders:,} operations on {symbol}!")

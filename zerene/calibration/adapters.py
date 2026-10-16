@@ -65,7 +65,7 @@ class BinanceDataParser:
         Parses standard Binance public data archive trade CSV:
         id,price,qty,quote_qty,time,is_buyer_maker,is_best_match
         """
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, "r", encoding="utf-8", newline="") as f:
             reader = csv.DictReader(f)
             for r in reader:
                 ts = float(r.get("time", 0.0)) / 1000.0
@@ -98,17 +98,17 @@ class StandardL3Parser:
         filepath: str, symbol: str = "BTC-USD"
     ) -> Generator[Order, None, None]:
         """Yields ZERENE Order objects from standard L3 CSV events."""
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, "r", encoding="utf-8", newline="") as f:
             reader = csv.DictReader(f)
-            for idx, r in reader:
-                ts = float(r.get("timestamp", 0.0))
-                oid = str(r.get("order_id", f"L3-{idx}"))
-                side_str = str(r.get("side", "BUY")).upper()
+            for idx, r in enumerate(reader):
+                ts = float(r.get("timestamp") or 0.0)
+                oid = str(r.get("order_id") or f"L3-{idx}")
+                side_str = str(r.get("side") or "BUY").upper()
                 side = Side.BUY if side_str == "BUY" else Side.SELL
-                action = str(r.get("action", "INSERT")).upper()
+                action = str(r.get("action") or "INSERT").upper()
                 price_val = r.get("price")
-                price = float(price_val) if price_val and price_val != "" else None
-                qty = float(r.get("quantity", 1.0))
+                price = float(price_val) if price_val is not None and price_val.strip() else None
+                qty = float(r.get("quantity") or 1.0)
 
                 otype = OrderType.MARKET if action == "EXECUTE" else OrderType.LIMIT
 

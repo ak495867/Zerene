@@ -6,7 +6,7 @@ with transparent fallback to pure Python if binary extensions are not compiled.
 
 try:
     # If compiled C++ extension exists, import high-speed C++ matching core
-    from zerene import zerene_cpp_core as _cpp_core
+    from zerene import zerene_cpp_core as _cpp_core  # type: ignore[attr-defined]
 
     HAS_NATIVE_CORE = True
 except ImportError:
